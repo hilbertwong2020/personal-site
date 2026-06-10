@@ -11,6 +11,13 @@
 
 这套组合适合个人项目：开始免费或低成本，后面可以逐步升级，也不用自己维护服务器。
 
+## 当前状态
+
+- 静态版已经部署到 GitHub Pages。
+- 项目已经升级出 Next.js 应用骨架。
+- 本地 Next.js 版本已通过生产构建。
+- 下一步：部署 Next.js 到 Vercel Free，然后接 Supabase。
+
 ## 第一阶段目标
 
 先做一个能上线的最小版本：
@@ -24,6 +31,19 @@
 - 绑定自己的域名
 
 当前已经完成一个静态首页雏形，可以先免费部署到 GitHub Pages。部署步骤见 `DEPLOY.md`。
+
+Next.js 版本本地运行：
+
+```bash
+npm install
+npm run dev
+```
+
+然后打开：
+
+```text
+http://localhost:3000
+```
 
 ## 第二阶段目标
 
