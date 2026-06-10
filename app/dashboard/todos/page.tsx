@@ -452,6 +452,7 @@ export default function TodosPage() {
         <button className="button secondary" type="button" onClick={addGoal} disabled={!user}>
           添加长期目标
         </button>
+        {message ? <p className="auth-message">{message}</p> : null}
       </section>
 
       <section className="editor-panel">
