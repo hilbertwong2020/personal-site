@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client";
 type Goal = {
   id: string;
   title: string;
+  description: string | null;
   target_date: string | null;
 };
 
@@ -58,12 +59,29 @@ function formatMinutes(totalMinutes: number) {
   return `${hours} 小时 ${minutes} 分钟`;
 }
 
-function sessionMinutes(session: TimeSession) {
-  if (session.ended_at) {
-    return Math.round(session.duration_seconds / 60);
+function formatClock(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   }
 
-  return Math.max(0, Math.round((Date.now() - new Date(session.started_at).getTime()) / 60000));
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function sessionSeconds(session: TimeSession) {
+  if (session.ended_at) {
+    return session.duration_seconds;
+  }
+
+  return Math.max(0, Math.round((Date.now() - new Date(session.started_at).getTime()) / 1000));
+}
+
+function sessionMinutes(session: TimeSession) {
+  return Math.round(sessionSeconds(session) / 60);
 }
 
 function sumBy<T>(items: T[], getKey: (item: T) => string, getMinutes: (item: T) => number) {
@@ -81,7 +99,10 @@ export default function TodosPage() {
   const [sessions, setSessions] = useState<TimeSession[]>([]);
   const [review, setReview] = useState<DailyReview | null>(null);
   const [reviewText, setReviewText] = useState("");
+  const [showAddGoal, setShowAddGoal] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [newGoalTitle, setNewGoalTitle] = useState("");
+  const [newGoalDescription, setNewGoalDescription] = useState("");
   const [newGoalTargetDate, setNewGoalTargetDate] = useState("");
   const [newTodo, setNewTodo] = useState("");
   const [category, setCategory] = useState("学习");
@@ -92,6 +113,7 @@ export default function TodosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [, setTick] = useState(0);
 
   const today = todayIsoDate();
 
@@ -161,7 +183,7 @@ export default function TodosPage() {
         const [goalsResult, todosResult, sessionsResult, reviewResult] = await Promise.all([
           supabase
             .from("goals")
-            .select("id,title,target_date")
+            .select("id,title,description,target_date")
             .eq("owner_id", currentUser.id)
             .eq("status", "active")
             .order("created_at", { ascending: false }),
@@ -205,6 +227,18 @@ export default function TodosPage() {
     loadUser();
   }, [today]);
 
+  useEffect(() => {
+    if (!sessions.some((session) => !session.ended_at)) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setTick((value) => value + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [sessions]);
+
   async function addGoal() {
     if (!user) {
       setMessage("请先登录。");
@@ -223,9 +257,10 @@ export default function TodosPage() {
       .insert({
         owner_id: user.id,
         title,
+        description: newGoalDescription.trim() || null,
         target_date: newGoalTargetDate || null,
       })
-      .select("id,title,target_date")
+      .select("id,title,description,target_date")
       .single();
 
     if (error) {
@@ -235,7 +270,9 @@ export default function TodosPage() {
 
     setGoals((currentGoals) => [data as Goal, ...currentGoals]);
     setNewGoalTitle("");
+    setNewGoalDescription("");
     setNewGoalTargetDate("");
+    setShowAddGoal(false);
     setMessage("长期目标已创建。");
   }
 
@@ -280,6 +317,7 @@ export default function TodosPage() {
     setTodos((currentTodos) => [data as Todo, ...currentTodos]);
     setNewTodo("");
     setNotes("");
+    setShowMoreOptions(false);
     setMessage("待办已添加。");
   }
 
@@ -403,7 +441,7 @@ export default function TodosPage() {
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
         <p className="eyebrow">Today</p>
-        <p className="version-marker">版本标记：WIDE-GOAL</p>
+        <p className="version-marker">版本标记：DAILY-FOCUS</p>
         <h1>待办和计时</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
         {!isLoading && !user ? (
@@ -434,32 +472,54 @@ export default function TodosPage() {
 
       <section className="goal-task-layout">
         <aside className="editor-panel goal-column">
-          <h2>长期目标</h2>
-          <label htmlFor="goal-title">新目标</label>
-          <input
-            id="goal-title"
-            value={newGoalTitle}
-            onChange={(event) => setNewGoalTitle(event.target.value)}
-            placeholder="例如：21 天完成统计复习"
-            disabled={!user}
-          />
-          <label htmlFor="goal-target-date">目标日期</label>
-          <input
-            id="goal-target-date"
-            type="date"
-            value={newGoalTargetDate}
-            onChange={(event) => setNewGoalTargetDate(event.target.value)}
-            disabled={!user}
-          />
-          <button className="button secondary" type="button" onClick={addGoal} disabled={!user}>
-            添加长期目标
-          </button>
+          <div className="panel-heading-row">
+            <div>
+              <p className="eyebrow">Goals</p>
+              <h2>长期目标</h2>
+            </div>
+            <button className="mini-button" type="button" onClick={() => setShowAddGoal((value) => !value)}>
+              {showAddGoal ? "收起" : "+ 添加长期目标"}
+            </button>
+          </div>
+          {showAddGoal ? (
+            <div className="compact-form">
+              <label htmlFor="goal-title">目标标题</label>
+              <input
+                id="goal-title"
+                value={newGoalTitle}
+                onChange={(event) => setNewGoalTitle(event.target.value)}
+                placeholder="例如：21 天完成统计复习"
+                disabled={!user}
+              />
+              <label htmlFor="goal-target-date">目标日期</label>
+              <input
+                id="goal-target-date"
+                type="date"
+                value={newGoalTargetDate}
+                onChange={(event) => setNewGoalTargetDate(event.target.value)}
+                disabled={!user}
+              />
+              <label htmlFor="goal-description">描述（可选）</label>
+              <textarea
+                id="goal-description"
+                value={newGoalDescription}
+                onChange={(event) => setNewGoalDescription(event.target.value)}
+                rows={2}
+                placeholder="目标背景、标准或备注"
+                disabled={!user}
+              />
+              <button className="button secondary" type="button" onClick={addGoal} disabled={!user}>
+                保存长期目标
+              </button>
+            </div>
+          ) : null}
           {message ? <p className="auth-message">{message}</p> : null}
           <div className="goal-list">
             {goals.length === 0 ? <p className="timer-status">还没有长期目标。</p> : null}
             {goals.map((goal) => (
               <article className="goal-card" key={goal.id}>
                 <strong>{goal.title}</strong>
+                {goal.description ? <span>{goal.description}</span> : null}
                 <span>{goal.target_date ? `目标日期：${goal.target_date}` : "没有目标日期"}</span>
                 <span>今日投入：{formatMinutes(minutesByGoal[goal.title] ?? 0)}</span>
               </article>
@@ -468,57 +528,78 @@ export default function TodosPage() {
         </aside>
 
         <div className="short-task-column">
-          <section className="editor-panel">
-            <h2>短期目标 / 今日待办</h2>
-            <label htmlFor="todo-title">任务标题</label>
-            <input
-              id="todo-title"
-              value={newTodo}
-              onChange={(event) => setNewTodo(event.target.value)}
-              placeholder="输入今天要做的事"
-              disabled={!user}
-            />
-            <div className="form-grid">
-              <label>
-                大类
-                <input
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                  list="category-options"
-                  disabled={!user}
-                />
-              </label>
-              <label>
-                小类
-                <input
-                  value={subcategory}
-                  onChange={(event) => setSubcategory(event.target.value)}
-                  list="subcategory-options"
-                  disabled={!user}
-                />
-              </label>
-              <label>
-                预计用时（分钟）
-                <input
-                  type="number"
-                  min="0"
-                  value={estimatedMinutes}
-                  onChange={(event) => setEstimatedMinutes(event.target.value)}
-                  disabled={!user}
-                />
-              </label>
-              <label>
-                关联长期目标
-                <select value={goalId} onChange={(event) => setGoalId(event.target.value)} disabled={!user}>
-                  <option value="">无长期目标</option>
-                  {goals.map((goal) => (
-                    <option value={goal.id} key={goal.id}>
-                      {goal.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
+          <section className="editor-panel quick-add-panel">
+            <div className="panel-heading-row">
+              <div>
+                <p className="eyebrow">Today</p>
+                <h2>快速添加今日待办</h2>
+              </div>
+              <button className="mini-button" type="button" onClick={() => setShowMoreOptions((value) => !value)}>
+                {showMoreOptions ? "收起选项" : "更多选项"}
+              </button>
             </div>
+            <div className="quick-add-row">
+              <input
+                id="todo-title"
+                value={newTodo}
+                onChange={(event) => setNewTodo(event.target.value)}
+                placeholder="任务标题"
+                disabled={!user}
+              />
+              <select value={goalId} onChange={(event) => setGoalId(event.target.value)} disabled={!user}>
+                <option value="">无长期目标</option>
+                {goals.map((goal) => (
+                  <option value={goal.id} key={goal.id}>
+                    {goal.title}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="0"
+                value={estimatedMinutes}
+                onChange={(event) => setEstimatedMinutes(event.target.value)}
+                aria-label="预计用时（分钟）"
+                placeholder="分钟"
+                disabled={!user}
+              />
+              <button className="button primary" type="button" onClick={addTodo} disabled={!user || isSaving}>
+                {isSaving ? "添加中..." : "添加"}
+              </button>
+            </div>
+            {showMoreOptions ? (
+              <div className="form-grid">
+                <label>
+                  大类
+                  <input
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                    list="category-options"
+                    disabled={!user}
+                  />
+                </label>
+                <label>
+                  小类
+                  <input
+                    value={subcategory}
+                    onChange={(event) => setSubcategory(event.target.value)}
+                    list="subcategory-options"
+                    disabled={!user}
+                  />
+                </label>
+                <label className="wide-field">
+                  备注
+                  <textarea
+                    id="todo-notes"
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    placeholder="补充说明，AI tags 字段已预留在数据库里。"
+                    rows={2}
+                    disabled={!user}
+                  />
+                </label>
+              </div>
+            ) : null}
             <datalist id="category-options">
               {defaultCategories.map((item) => (
                 <option value={item} key={item} />
@@ -529,49 +610,53 @@ export default function TodosPage() {
                 <option value={item} key={item} />
               ))}
             </datalist>
-            <label htmlFor="todo-notes">备注</label>
-            <textarea
-              id="todo-notes"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="补充说明，AI tags 字段已预留在数据库里。"
-              rows={3}
-              disabled={!user}
-            />
-            <button className="button primary" type="button" onClick={addTodo} disabled={!user || isSaving}>
-              {isSaving ? "添加中..." : "添加待办"}
-            </button>
           </section>
 
-          <section className="editor-panel">
-            <h2>今天</h2>
-            <div className="todo-preview-list">
+          <section className="editor-panel today-list-panel">
+            <div className="panel-heading-row">
+              <div>
+                <p className="eyebrow">Task list</p>
+                <h2>今天的待办列表</h2>
+              </div>
+              <span className="list-count">{todos.length} 项</span>
+            </div>
+            <div className="todo-preview-list task-focus-list">
               {todos.length === 0 ? <p className="timer-status">还没有待办。登录后可以添加今天的任务。</p> : null}
               {todos.map((todo) => {
                 const todoSessions = sessionsByTodoId[todo.id] ?? [];
-                const actualMinutes = todoSessions.reduce((total, session) => total + sessionMinutes(session), 0);
+                const actualSeconds = todoSessions.reduce((total, session) => total + sessionSeconds(session), 0);
+                const actualMinutes = Math.round(actualSeconds / 60);
                 const activeSession = activeSessionByTodoId[todo.id];
                 const goalTitle = todo.goal_id ? goalById[todo.goal_id]?.title : "";
+                const estimatedSeconds = todo.estimated_minutes ? todo.estimated_minutes * 60 : null;
+                const remainingSeconds =
+                  estimatedSeconds === null ? actualSeconds : Math.max(0, estimatedSeconds - actualSeconds);
 
                 return (
                   <article className="todo-card" key={todo.id}>
-                    <label className="todo-item">
-                      <input
-                        type="checkbox"
-                        checked={todo.completed}
-                        onChange={() => toggleTodo(todo)}
-                        disabled={!user}
-                      />
-                      <span className={todo.completed ? "todo-done" : undefined}>{todo.title}</span>
-                    </label>
-                    <p className="timer-status">
-                      {todo.category} / {todo.subcategory}
-                      {goalTitle ? ` · ${goalTitle}` : ""}
-                      {todo.estimated_minutes ? ` · 预计 ${formatMinutes(todo.estimated_minutes)}` : ""}
-                      {` · 实际 ${formatMinutes(actualMinutes)}`}
-                    </p>
+                    <div className="todo-card-main">
+                      <label className="todo-item">
+                        <input
+                          type="checkbox"
+                          checked={todo.completed}
+                          onChange={() => toggleTodo(todo)}
+                          disabled={!user}
+                        />
+                        <span className={todo.completed ? "todo-done" : undefined}>{todo.title}</span>
+                      </label>
+                      <div className={activeSession ? "timer-pill active" : "timer-pill"}>
+                        <span>{activeSession ? "计时中" : estimatedSeconds ? "剩余" : "累计"}</span>
+                        <strong>{formatClock(remainingSeconds)}</strong>
+                      </div>
+                    </div>
+                    <div className="task-meta-row">
+                      <span>{todo.category} / {todo.subcategory}</span>
+                      <span>{goalTitle || "无长期目标"}</span>
+                      <span>{todo.estimated_minutes ? `预计 ${formatMinutes(todo.estimated_minutes)}` : "无预计时间"}</span>
+                      <span>实际 {formatMinutes(actualMinutes)}</span>
+                    </div>
                     {todo.notes ? <p>{todo.notes}</p> : null}
-                    <div className="dashboard-actions">
+                    <div className="dashboard-actions task-actions">
                       <button
                         className="button secondary"
                         type="button"
@@ -588,8 +673,10 @@ export default function TodosPage() {
                       >
                         Stop
                       </button>
+                      <span className="timer-status">
+                        {todoSessions.length ? `今日计时段数：${todoSessions.length}` : "还没有计时记录"}
+                      </span>
                     </div>
-                    {todoSessions.length ? <p className="timer-status">今日计时段数：{todoSessions.length}</p> : null}
                   </article>
                 );
               })}

@@ -320,6 +320,15 @@ h3 {
   width: min(1440px, calc(100% - 48px));
 }
 
+.todos-page .dashboard-hero {
+  padding: 28px 32px;
+}
+
+.todos-page .editor-panel h2,
+.todos-page .card h2 {
+  font-size: clamp(24px, 3vw, 34px);
+}
+
 .post-page {
   width: min(820px, calc(100% - 40px));
   margin: 0 auto;
@@ -466,6 +475,10 @@ h3 {
   box-shadow: var(--shadow);
 }
 
+.todos-page .editor-panel {
+  padding: 20px;
+}
+
 .editor-panel label {
   font-weight: 800;
 }
@@ -496,6 +509,10 @@ h3 {
   margin-top: 12px;
 }
 
+.task-focus-list {
+  margin-top: 2px;
+}
+
 .todo-done {
   color: var(--muted);
   text-decoration: line-through;
@@ -515,6 +532,11 @@ h3 {
   background: var(--surface);
   padding: 18px;
   box-shadow: var(--shadow);
+}
+
+.todo-card {
+  display: grid;
+  gap: 12px;
 }
 
 .stat-card {
@@ -542,10 +564,14 @@ h3 {
   gap: 8px;
 }
 
+.wide-field {
+  grid-column: 1 / -1;
+}
+
 .goal-task-layout {
   display: grid;
-  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-  gap: 28px;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  gap: 22px;
   margin-top: 28px;
   align-items: start;
 }
@@ -557,7 +583,7 @@ h3 {
 
 .short-task-column {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .goal-list {
@@ -568,16 +594,124 @@ h3 {
 
 .goal-card {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: white;
-  padding: 14px;
+  padding: 12px;
 }
 
 .goal-card span {
   color: var(--muted);
   font-size: 14px;
+}
+
+.panel-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.panel-heading-row h2 {
+  margin-bottom: 0;
+}
+
+.mini-button,
+.list-count {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.mini-button {
+  cursor: pointer;
+}
+
+.mini-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.compact-form {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(222, 216, 204, 0.8);
+  border-radius: 8px;
+  background: rgba(239, 232, 218, 0.45);
+  padding: 14px;
+}
+
+.quick-add-panel {
+  margin-top: 0;
+}
+
+.quick-add-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px) 120px auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.todo-card-main,
+.task-meta-row,
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.todo-card-main {
+  justify-content: space-between;
+}
+
+.task-meta-row {
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.task-meta-row span {
+  border: 1px solid rgba(222, 216, 204, 0.9);
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: rgba(247, 245, 240, 0.7);
+}
+
+.timer-pill {
+  display: grid;
+  min-width: 110px;
+  justify-items: end;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface-strong);
+}
+
+.timer-pill span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.timer-pill strong {
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.timer-pill.active {
+  border-color: rgba(46, 111, 94, 0.45);
+  background: rgba(46, 111, 94, 0.12);
 }
 
 .writing-layout {
@@ -681,12 +815,24 @@ h3 {
 
   .stats-grid,
   .form-grid,
-  .goal-task-layout {
+  .goal-task-layout,
+  .quick-add-row {
     grid-template-columns: 1fr;
   }
 
   .goal-column {
     position: static;
+  }
+
+  .panel-heading-row,
+  .todo-card-main,
+  .task-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .timer-pill {
+    justify-items: start;
   }
 
   .writing-layout {
