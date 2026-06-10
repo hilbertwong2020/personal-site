@@ -37,6 +37,12 @@ https://hilbertwong2020.github.io/personal-site/
 https://personal-site-xxxx.vercel.app
 ```
 
+当前项目的 Vercel 地址：
+
+```text
+https://personal-site-ruby-mu-69.vercel.app/
+```
+
 ## 之后要做
 
 Next.js 部署成功后，再创建 Supabase 项目，并配置：
@@ -49,4 +55,3 @@ Next.js 部署成功后，再创建 Supabase 项目，并配置：
 - 待办事项表
 - 文件存储 bucket
 - 数据库权限规则
-

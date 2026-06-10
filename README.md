@@ -16,7 +16,13 @@
 - 静态版已经部署到 GitHub Pages。
 - 项目已经升级出 Next.js 应用骨架。
 - 本地 Next.js 版本已通过生产构建。
-- 下一步：部署 Next.js 到 Vercel Free，然后接 Supabase。
+- Next.js 版本已经部署到 Vercel Free。
+- 下一步：创建 Supabase 项目，然后接登录、数据库和文件存储。
+
+当前线上地址：
+
+- GitHub Pages: https://hilbertwong2020.github.io/personal-site/
+- Vercel: https://personal-site-ruby-mu-69.vercel.app/
 
 ## 第一阶段目标
 

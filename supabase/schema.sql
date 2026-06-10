@@ -1,0 +1,214 @@
+-- Wang's Space initial database schema
+-- Run this in the Supabase SQL Editor after creating the project.
+
+create type public.profile_role as enum ('owner', 'member');
+create type public.content_visibility as enum ('public', 'members', 'private', 'shared');
+create type public.permission_level as enum ('view', 'edit');
+
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  display_name text,
+  role public.profile_role not null default 'member',
+  approved boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table public.invitations (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  email text,
+  created_by uuid references public.profiles(id) on delete set null,
+  used_by uuid references public.profiles(id) on delete set null,
+  used_at timestamptz,
+  expires_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.posts (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  slug text not null unique,
+  excerpt text,
+  content text not null default '',
+  visibility public.content_visibility not null default 'public',
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.documents (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  content text not null default '',
+  visibility public.content_visibility not null default 'private',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.document_permissions (
+  document_id uuid not null references public.documents(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  level public.permission_level not null default 'view',
+  created_at timestamptz not null default now(),
+  primary key (document_id, user_id)
+);
+
+create table public.todos (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  completed boolean not null default false,
+  due_on date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.timer_sessions (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  todo_id uuid references public.todos(id) on delete set null,
+  started_at timestamptz not null default now(),
+  ended_at timestamptz,
+  duration_seconds integer not null default 0,
+  note text
+);
+
+create table public.diary_entries (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  title text,
+  content text not null default '',
+  entry_date date not null default current_date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.files (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  storage_path text not null,
+  mime_type text,
+  size_bytes bigint,
+  visibility public.content_visibility not null default 'private',
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+alter table public.invitations enable row level security;
+alter table public.posts enable row level security;
+alter table public.documents enable row level security;
+alter table public.document_permissions enable row level security;
+alter table public.todos enable row level security;
+alter table public.timer_sessions enable row level security;
+alter table public.diary_entries enable row level security;
+alter table public.files enable row level security;
+
+create policy "profiles are readable by signed-in users"
+on public.profiles for select
+to authenticated
+using (true);
+
+create policy "users can update their own profile"
+on public.profiles for update
+to authenticated
+using (auth.uid() = id)
+with check (auth.uid() = id);
+
+create policy "public posts are readable by everyone"
+on public.posts for select
+to anon, authenticated
+using (visibility = 'public' and published_at is not null);
+
+create policy "members can read members posts"
+on public.posts for select
+to authenticated
+using (visibility in ('public', 'members') or author_id = auth.uid());
+
+create policy "authors can manage their posts"
+on public.posts for all
+to authenticated
+using (author_id = auth.uid())
+with check (author_id = auth.uid());
+
+create policy "owners can read their documents"
+on public.documents for select
+to authenticated
+using (
+  owner_id = auth.uid()
+  or visibility = 'members'
+  or exists (
+    select 1
+    from public.document_permissions
+    where document_permissions.document_id = documents.id
+      and document_permissions.user_id = auth.uid()
+  )
+);
+
+create policy "owners can manage their documents"
+on public.documents for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
+
+create policy "document editors can update shared documents"
+on public.documents for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.document_permissions
+    where document_permissions.document_id = documents.id
+      and document_permissions.user_id = auth.uid()
+      and document_permissions.level = 'edit'
+  )
+);
+
+create policy "users can read permissions involving them"
+on public.document_permissions for select
+to authenticated
+using (user_id = auth.uid());
+
+create policy "document owners can manage permissions"
+on public.document_permissions for all
+to authenticated
+using (
+  exists (
+    select 1
+    from public.documents
+    where documents.id = document_permissions.document_id
+      and documents.owner_id = auth.uid()
+  )
+);
+
+create policy "users can manage their todos"
+on public.todos for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
+
+create policy "users can manage their timer sessions"
+on public.timer_sessions for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
+
+create policy "users can manage their diary entries"
+on public.diary_entries for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
+
+create policy "public files are readable by everyone"
+on public.files for select
+to anon, authenticated
+using (visibility = 'public');
+
+create policy "users can manage their files"
+on public.files for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
