@@ -50,6 +50,12 @@ alter table public.goals enable row level security;
 alter table public.task_time_sessions enable row level security;
 alter table public.daily_reviews enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.goals to authenticated;
+grant select, insert, update, delete on public.task_time_sessions to authenticated;
+grant select, insert, update, delete on public.daily_reviews to authenticated;
+grant select, insert, update, delete on public.todos to authenticated;
+
 drop trigger if exists set_goals_updated_at on public.goals;
 create trigger set_goals_updated_at
 before update on public.goals

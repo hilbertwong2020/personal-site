@@ -213,6 +213,12 @@ alter table public.diary_entries enable row level security;
 alter table public.files enable row level security;
 alter table public.daily_reviews enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.goals to authenticated;
+grant select, insert, update, delete on public.task_time_sessions to authenticated;
+grant select, insert, update, delete on public.daily_reviews to authenticated;
+grant select, insert, update, delete on public.todos to authenticated;
+
 create policy "profiles are readable by signed-in users"
 on public.profiles for select
 to authenticated
