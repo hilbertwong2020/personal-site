@@ -433,6 +433,11 @@ h3 {
   margin-top: 12px;
 }
 
+.todo-done {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
 @media (max-width: 760px) {
   .site-header {
     align-items: flex-start;
