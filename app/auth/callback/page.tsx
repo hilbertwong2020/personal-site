@@ -8,10 +8,27 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     async function finishLogin() {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const hashError = hashParams.get("error_description") || hashParams.get("error");
+
+      if (hashError) {
+        setMessage(decodeURIComponent(hashError.replaceAll("+", " ")));
+        return;
+      }
+
+      const {
+        data: { session: existingSession },
+      } = await supabase.auth.getSession();
+
+      if (existingSession) {
+        window.location.replace("/dashboard");
+        return;
+      }
+
       const code = new URLSearchParams(window.location.search).get("code");
 
       if (!code) {
-        setMessage("登录链接无效：缺少 code。");
+        setMessage("登录链接无效或已过期。请回到登录页重新发送一封邮件。");
         return;
       }
 
