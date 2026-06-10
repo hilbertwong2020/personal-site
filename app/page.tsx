@@ -38,6 +38,7 @@ export default function Home() {
           <a href="#library">资料库</a>
           <a href="#today">今日</a>
           <a href="#private">私密</a>
+          <a href="/login">登录</a>
         </nav>
       </header>
 

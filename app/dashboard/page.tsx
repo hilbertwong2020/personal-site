@@ -1,0 +1,71 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase/client";
+
+export default function DashboardPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadUser() {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+
+      setUser(currentUser);
+      setIsLoading(false);
+    }
+
+    loadUser();
+  }, []);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    window.location.replace("/");
+  }
+
+  return (
+    <main className="dashboard-page">
+      <section className="dashboard-hero">
+        <p className="eyebrow">Dashboard</p>
+        <h1>个人后台</h1>
+        {isLoading ? <p>正在读取登录状态...</p> : null}
+        {!isLoading && !user ? (
+          <>
+            <p>你还没有登录。请先用邮箱登录。</p>
+            <a className="button primary" href="/login">
+              去登录
+            </a>
+          </>
+        ) : null}
+        {user ? (
+          <>
+            <p>已登录：{user.email}</p>
+            <div className="dashboard-actions">
+              <a className="button secondary" href="/">
+                回首页
+              </a>
+              <button className="button primary" type="button" onClick={signOut}>
+                退出登录
+              </button>
+            </div>
+          </>
+        ) : null}
+      </section>
+      <section className="dashboard-grid">
+        <article className="card">
+          <p className="card-meta">Next</p>
+          <h2>邀请制</h2>
+          <p>下一步会限制只有被邀请或被你审批的人才能进入个人空间。</p>
+        </article>
+        <article className="card">
+          <p className="card-meta">Next</p>
+          <h2>私密日记</h2>
+          <p>登录打通后，我们会把私密日记保存到 Supabase，并用权限规则保护。</p>
+        </article>
+      </section>
+    </main>
+  );
+}
