@@ -34,7 +34,7 @@ export default function Home() {
           Wang&apos;s Space
         </a>
         <nav className="nav" aria-label="主导航">
-          <a href="#writing">文章</a>
+          <a href="/posts">文章</a>
           <a href="#library">资料库</a>
           <a href="#today">今日</a>
           <a href="#private">私密</a>
@@ -76,14 +76,18 @@ export default function Home() {
             <article className="card">
               <p className="card-meta">草稿 · 个人网站</p>
               <h3>为什么我要建这个网站</h3>
-              <p>
-                这里以后会放第一篇公开文章。下一步我们会把文章从静态卡片变成数据库里的内容。
-              </p>
+              <p>这里已经有第一篇公开文章。下一步我们会把文章从本地数据变成数据库里的内容。</p>
+              <a className="card-link" href="/posts/why-this-site">
+                阅读文章
+              </a>
             </article>
             <article className="card">
               <p className="card-meta">计划 · 学习笔记</p>
               <h3>课程 PDF 和笔记整理</h3>
               <p>之后可以上传旧课件、PDF、笔记，并用标签和搜索把它们组织起来。</p>
+              <a className="card-link" href="/posts/course-notes-library">
+                阅读计划
+              </a>
             </article>
           </div>
         </section>
