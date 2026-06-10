@@ -526,6 +526,44 @@ h3 {
   gap: 8px;
 }
 
+.goal-task-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
+  gap: 22px;
+  margin-top: 22px;
+  align-items: start;
+}
+
+.goal-column {
+  position: sticky;
+  top: 92px;
+}
+
+.short-task-column {
+  display: grid;
+  gap: 22px;
+}
+
+.goal-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.goal-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: 14px;
+}
+
+.goal-card span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .writing-layout {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
@@ -626,8 +664,13 @@ h3 {
   }
 
   .stats-grid,
-  .form-grid {
+  .form-grid,
+  .goal-task-layout {
     grid-template-columns: 1fr;
+  }
+
+  .goal-column {
+    position: static;
   }
 
   .writing-layout {

@@ -431,151 +431,169 @@ export default function TodosPage() {
         </article>
       </section>
 
-      <section className="editor-panel">
-        <h2>长期目标</h2>
-        <label htmlFor="goal-title">新目标</label>
-        <input
-          id="goal-title"
-          value={newGoalTitle}
-          onChange={(event) => setNewGoalTitle(event.target.value)}
-          placeholder="例如：21 天完成统计复习"
-          disabled={!user}
-        />
-        <label htmlFor="goal-target-date">目标日期</label>
-        <input
-          id="goal-target-date"
-          type="date"
-          value={newGoalTargetDate}
-          onChange={(event) => setNewGoalTargetDate(event.target.value)}
-          disabled={!user}
-        />
-        <button className="button secondary" type="button" onClick={addGoal} disabled={!user}>
-          添加长期目标
-        </button>
-        {message ? <p className="auth-message">{message}</p> : null}
-      </section>
-
-      <section className="editor-panel">
-        <h2>新待办</h2>
-        <label htmlFor="todo-title">任务标题</label>
-        <input
-          id="todo-title"
-          value={newTodo}
-          onChange={(event) => setNewTodo(event.target.value)}
-          placeholder="输入今天要做的事"
-          disabled={!user}
-        />
-        <div className="form-grid">
-          <label>
-            大类
-            <input
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              list="category-options"
-              disabled={!user}
-            />
-          </label>
-          <label>
-            小类
-            <input
-              value={subcategory}
-              onChange={(event) => setSubcategory(event.target.value)}
-              list="subcategory-options"
-              disabled={!user}
-            />
-          </label>
-          <label>
-            预计用时（分钟）
-            <input
-              type="number"
-              min="0"
-              value={estimatedMinutes}
-              onChange={(event) => setEstimatedMinutes(event.target.value)}
-              disabled={!user}
-            />
-          </label>
-          <label>
-            关联长期目标
-            <select value={goalId} onChange={(event) => setGoalId(event.target.value)} disabled={!user}>
-              <option value="">无长期目标</option>
-              {goals.map((goal) => (
-                <option value={goal.id} key={goal.id}>
-                  {goal.title}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <datalist id="category-options">
-          {defaultCategories.map((item) => (
-            <option value={item} key={item} />
-          ))}
-        </datalist>
-        <datalist id="subcategory-options">
-          {defaultSubcategories.map((item) => (
-            <option value={item} key={item} />
-          ))}
-        </datalist>
-        <label htmlFor="todo-notes">备注</label>
-        <textarea
-          id="todo-notes"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="补充说明，AI tags 字段已预留在数据库里。"
-          rows={3}
-          disabled={!user}
-        />
-        <button className="button primary" type="button" onClick={addTodo} disabled={!user || isSaving}>
-          {isSaving ? "添加中..." : "添加待办"}
-        </button>
-        {message ? <p className="auth-message">{message}</p> : null}
-      </section>
-
-      <section className="editor-panel">
-        <h2>今日任务</h2>
-        <div className="todo-preview-list">
-          {todos.length === 0 ? <p className="timer-status">还没有待办。登录后可以添加今天的任务。</p> : null}
-          {todos.map((todo) => {
-            const todoSessions = sessionsByTodoId[todo.id] ?? [];
-            const actualMinutes = todoSessions.reduce((total, session) => total + sessionMinutes(session), 0);
-            const activeSession = activeSessionByTodoId[todo.id];
-            const goalTitle = todo.goal_id ? goalById[todo.goal_id]?.title : "";
-
-            return (
-              <article className="todo-card" key={todo.id}>
-                <label className="todo-item">
-                  <input type="checkbox" checked={todo.completed} onChange={() => toggleTodo(todo)} disabled={!user} />
-                  <span className={todo.completed ? "todo-done" : undefined}>{todo.title}</span>
-                </label>
-                <p className="timer-status">
-                  {todo.category} / {todo.subcategory}
-                  {goalTitle ? ` · ${goalTitle}` : ""}
-                  {todo.estimated_minutes ? ` · 预计 ${formatMinutes(todo.estimated_minutes)}` : ""}
-                  {` · 实际 ${formatMinutes(actualMinutes)}`}
-                </p>
-                {todo.notes ? <p>{todo.notes}</p> : null}
-                <div className="dashboard-actions">
-                  <button
-                    className="button secondary"
-                    type="button"
-                    onClick={() => startTimer(todo)}
-                    disabled={!user || Boolean(activeSession)}
-                  >
-                    Start
-                  </button>
-                  <button
-                    className="button primary"
-                    type="button"
-                    onClick={() => stopTimer(todo)}
-                    disabled={!user || !activeSession}
-                  >
-                    Stop
-                  </button>
-                </div>
-                {todoSessions.length ? <p className="timer-status">今日计时段数：{todoSessions.length}</p> : null}
+      <section className="goal-task-layout">
+        <aside className="editor-panel goal-column">
+          <h2>长期目标</h2>
+          <label htmlFor="goal-title">新目标</label>
+          <input
+            id="goal-title"
+            value={newGoalTitle}
+            onChange={(event) => setNewGoalTitle(event.target.value)}
+            placeholder="例如：21 天完成统计复习"
+            disabled={!user}
+          />
+          <label htmlFor="goal-target-date">目标日期</label>
+          <input
+            id="goal-target-date"
+            type="date"
+            value={newGoalTargetDate}
+            onChange={(event) => setNewGoalTargetDate(event.target.value)}
+            disabled={!user}
+          />
+          <button className="button secondary" type="button" onClick={addGoal} disabled={!user}>
+            添加长期目标
+          </button>
+          {message ? <p className="auth-message">{message}</p> : null}
+          <div className="goal-list">
+            {goals.length === 0 ? <p className="timer-status">还没有长期目标。</p> : null}
+            {goals.map((goal) => (
+              <article className="goal-card" key={goal.id}>
+                <strong>{goal.title}</strong>
+                <span>{goal.target_date ? `目标日期：${goal.target_date}` : "没有目标日期"}</span>
+                <span>今日投入：{formatMinutes(minutesByGoal[goal.title] ?? 0)}</span>
               </article>
-            );
-          })}
+            ))}
+          </div>
+        </aside>
+
+        <div className="short-task-column">
+          <section className="editor-panel">
+            <h2>短期目标 / 今日待办</h2>
+            <label htmlFor="todo-title">任务标题</label>
+            <input
+              id="todo-title"
+              value={newTodo}
+              onChange={(event) => setNewTodo(event.target.value)}
+              placeholder="输入今天要做的事"
+              disabled={!user}
+            />
+            <div className="form-grid">
+              <label>
+                大类
+                <input
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                  list="category-options"
+                  disabled={!user}
+                />
+              </label>
+              <label>
+                小类
+                <input
+                  value={subcategory}
+                  onChange={(event) => setSubcategory(event.target.value)}
+                  list="subcategory-options"
+                  disabled={!user}
+                />
+              </label>
+              <label>
+                预计用时（分钟）
+                <input
+                  type="number"
+                  min="0"
+                  value={estimatedMinutes}
+                  onChange={(event) => setEstimatedMinutes(event.target.value)}
+                  disabled={!user}
+                />
+              </label>
+              <label>
+                关联长期目标
+                <select value={goalId} onChange={(event) => setGoalId(event.target.value)} disabled={!user}>
+                  <option value="">无长期目标</option>
+                  {goals.map((goal) => (
+                    <option value={goal.id} key={goal.id}>
+                      {goal.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <datalist id="category-options">
+              {defaultCategories.map((item) => (
+                <option value={item} key={item} />
+              ))}
+            </datalist>
+            <datalist id="subcategory-options">
+              {defaultSubcategories.map((item) => (
+                <option value={item} key={item} />
+              ))}
+            </datalist>
+            <label htmlFor="todo-notes">备注</label>
+            <textarea
+              id="todo-notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="补充说明，AI tags 字段已预留在数据库里。"
+              rows={3}
+              disabled={!user}
+            />
+            <button className="button primary" type="button" onClick={addTodo} disabled={!user || isSaving}>
+              {isSaving ? "添加中..." : "添加待办"}
+            </button>
+          </section>
+
+          <section className="editor-panel">
+            <h2>今天</h2>
+            <div className="todo-preview-list">
+              {todos.length === 0 ? <p className="timer-status">还没有待办。登录后可以添加今天的任务。</p> : null}
+              {todos.map((todo) => {
+                const todoSessions = sessionsByTodoId[todo.id] ?? [];
+                const actualMinutes = todoSessions.reduce((total, session) => total + sessionMinutes(session), 0);
+                const activeSession = activeSessionByTodoId[todo.id];
+                const goalTitle = todo.goal_id ? goalById[todo.goal_id]?.title : "";
+
+                return (
+                  <article className="todo-card" key={todo.id}>
+                    <label className="todo-item">
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => toggleTodo(todo)}
+                        disabled={!user}
+                      />
+                      <span className={todo.completed ? "todo-done" : undefined}>{todo.title}</span>
+                    </label>
+                    <p className="timer-status">
+                      {todo.category} / {todo.subcategory}
+                      {goalTitle ? ` · ${goalTitle}` : ""}
+                      {todo.estimated_minutes ? ` · 预计 ${formatMinutes(todo.estimated_minutes)}` : ""}
+                      {` · 实际 ${formatMinutes(actualMinutes)}`}
+                    </p>
+                    {todo.notes ? <p>{todo.notes}</p> : null}
+                    <div className="dashboard-actions">
+                      <button
+                        className="button secondary"
+                        type="button"
+                        onClick={() => startTimer(todo)}
+                        disabled={!user || Boolean(activeSession)}
+                      >
+                        Start
+                      </button>
+                      <button
+                        className="button primary"
+                        type="button"
+                        onClick={() => stopTimer(todo)}
+                        disabled={!user || !activeSession}
+                      >
+                        Stop
+                      </button>
+                    </div>
+                    {todoSessions.length ? <p className="timer-status">今日计时段数：{todoSessions.length}</p> : null}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
         </div>
       </section>
 
