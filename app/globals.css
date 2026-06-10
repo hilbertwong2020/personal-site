@@ -485,6 +485,75 @@ h3 {
   text-decoration: line-through;
 }
 
+.writing-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 22px;
+  margin-top: 22px;
+}
+
+.sidebar-panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.item-list {
+  display: grid;
+  gap: 8px;
+}
+
+.item-button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: 12px;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item-button span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.item-button.active {
+  border-color: var(--accent);
+}
+
+.editor-panel select {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 14px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+}
+
+.share-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.share-panel h2 {
+  margin-bottom: 0;
+  font-size: 24px;
+}
+
 @media (max-width: 760px) {
   .site-header {
     align-items: flex-start;
@@ -512,6 +581,10 @@ h3 {
   }
 
   .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .writing-layout {
     grid-template-columns: 1fr;
   }
 }

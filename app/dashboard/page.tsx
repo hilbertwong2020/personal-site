@@ -61,6 +61,22 @@ export default function DashboardPage() {
           <p>下一步会限制只有被邀请或被你审批的人才能进入个人空间。</p>
         </article>
         <article className="card">
+          <p className="card-meta">Writing</p>
+          <h2>博客写作</h2>
+          <p>写公开文章、会员可见文章或仅自己可见的草稿。</p>
+          <a className="card-link" href="/dashboard/writing">
+            打开写作
+          </a>
+        </article>
+        <article className="card">
+          <p className="card-meta">Collaboration</p>
+          <h2>协作文章</h2>
+          <p>创建可以授权朋友查看或共同编辑的文章和文档。</p>
+          <a className="card-link" href="/dashboard/collab">
+            打开协作
+          </a>
+        </article>
+        <article className="card">
           <p className="card-meta">Private</p>
           <h2>私密日记</h2>
           <p>登录打通后，我们会把私密日记保存到 Supabase，并用权限规则保护。</p>
