@@ -400,9 +400,10 @@ export default function TodosPage() {
   }
 
   return (
-    <main className="dashboard-page">
+    <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
         <p className="eyebrow">Today</p>
+        <p className="version-marker">版本标记：WIDE-GOAL</p>
         <h1>待办和计时</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
         {!isLoading && !user ? (

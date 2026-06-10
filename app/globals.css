@@ -316,6 +316,10 @@ h3 {
   padding: 72px 0;
 }
 
+.todos-page {
+  width: min(1440px, calc(100% - 48px));
+}
+
 .post-page {
   width: min(820px, calc(100% - 40px));
   margin: 0 auto;
@@ -416,6 +420,18 @@ h3 {
 
 .dashboard-hero {
   padding: 32px;
+}
+
+.version-marker {
+  display: inline-flex;
+  margin: 0 0 12px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: rgba(46, 111, 94, 0.1);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .dashboard-actions {
@@ -528,9 +544,9 @@ h3 {
 
 .goal-task-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
-  gap: 22px;
-  margin-top: 22px;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+  gap: 28px;
+  margin-top: 28px;
   align-items: start;
 }
 
