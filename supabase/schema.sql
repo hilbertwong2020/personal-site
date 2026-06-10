@@ -91,9 +91,30 @@ create table public.todos (
   title text not null,
   completed boolean not null default false,
   due_on date,
+  category text not null default '未分类',
+  subcategory text not null default '未分类',
+  estimated_minutes integer,
+  goal_id uuid,
+  notes text,
+  ai_tags text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create table public.goals (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  title text not null,
+  description text,
+  start_date date not null default current_date,
+  target_date date,
+  status text not null default 'active',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.todos
+  add constraint todos_goal_id_fkey foreign key (goal_id) references public.goals(id) on delete set null;
 
 create table public.timer_sessions (
   id uuid primary key default gen_random_uuid(),
@@ -103,6 +124,18 @@ create table public.timer_sessions (
   ended_at timestamptz,
   duration_seconds integer not null default 0,
   note text
+);
+
+create table public.task_time_sessions (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  todo_id uuid not null references public.todos(id) on delete cascade,
+  goal_id uuid references public.goals(id) on delete set null,
+  started_at timestamptz not null default now(),
+  ended_at timestamptz,
+  duration_seconds integer not null default 0,
+  note text,
+  created_at timestamptz not null default now()
 );
 
 create table public.diary_entries (
@@ -126,6 +159,19 @@ create table public.files (
   created_at timestamptz not null default now()
 );
 
+create table public.daily_reviews (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  review_date date not null default current_date,
+  reflection text not null default '',
+  ai_summary text,
+  ai_suggestions text,
+  ai_tags text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (owner_id, review_date)
+);
+
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
@@ -142,8 +188,16 @@ create trigger set_todos_updated_at
 before update on public.todos
 for each row execute function public.set_updated_at();
 
+create trigger set_goals_updated_at
+before update on public.goals
+for each row execute function public.set_updated_at();
+
 create trigger set_diary_entries_updated_at
 before update on public.diary_entries
+for each row execute function public.set_updated_at();
+
+create trigger set_daily_reviews_updated_at
+before update on public.daily_reviews
 for each row execute function public.set_updated_at();
 
 alter table public.profiles enable row level security;
@@ -152,9 +206,12 @@ alter table public.posts enable row level security;
 alter table public.documents enable row level security;
 alter table public.document_permissions enable row level security;
 alter table public.todos enable row level security;
+alter table public.goals enable row level security;
 alter table public.timer_sessions enable row level security;
+alter table public.task_time_sessions enable row level security;
 alter table public.diary_entries enable row level security;
 alter table public.files enable row level security;
+alter table public.daily_reviews enable row level security;
 
 create policy "profiles are readable by signed-in users"
 on public.profiles for select
@@ -259,14 +316,32 @@ to authenticated
 using (owner_id = auth.uid())
 with check (owner_id = auth.uid());
 
+create policy "users can manage their goals"
+on public.goals for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
+
 create policy "users can manage their timer sessions"
 on public.timer_sessions for all
 to authenticated
 using (owner_id = auth.uid())
 with check (owner_id = auth.uid());
 
+create policy "users can manage their task time sessions"
+on public.task_time_sessions for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
+
 create policy "users can manage their diary entries"
 on public.diary_entries for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
+
+create policy "users can manage their daily reviews"
+on public.daily_reviews for all
 to authenticated
 using (owner_id = auth.uid())
 with check (owner_id = auth.uid());
