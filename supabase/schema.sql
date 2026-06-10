@@ -5,6 +5,35 @@ create type public.profile_role as enum ('owner', 'member');
 create type public.content_visibility as enum ('public', 'members', 'private', 'shared');
 create type public.permission_level as enum ('view', 'edit');
 
+create function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+create function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, display_name, approved)
+  values (
+    new.id,
+    coalesce(new.email, ''),
+    coalesce(new.raw_user_meta_data->>'display_name', split_part(coalesce(new.email, ''), '@', 1)),
+    false
+  );
+
+  return new;
+end;
+$$;
+
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
@@ -97,6 +126,26 @@ create table public.files (
   created_at timestamptz not null default now()
 );
 
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_user();
+
+create trigger set_posts_updated_at
+before update on public.posts
+for each row execute function public.set_updated_at();
+
+create trigger set_documents_updated_at
+before update on public.documents
+for each row execute function public.set_updated_at();
+
+create trigger set_todos_updated_at
+before update on public.todos
+for each row execute function public.set_updated_at();
+
+create trigger set_diary_entries_updated_at
+before update on public.diary_entries
+for each row execute function public.set_updated_at();
+
 alter table public.profiles enable row level security;
 alter table public.invitations enable row level security;
 alter table public.posts enable row level security;
@@ -117,6 +166,26 @@ on public.profiles for update
 to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
+
+create policy "owners can manage invitations"
+on public.invitations for all
+to authenticated
+using (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.id = auth.uid()
+      and profiles.role = 'owner'
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.profiles
+    where profiles.id = auth.uid()
+      and profiles.role = 'owner'
+  )
+);
 
 create policy "public posts are readable by everyone"
 on public.posts for select

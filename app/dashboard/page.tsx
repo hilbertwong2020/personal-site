@@ -61,9 +61,20 @@ export default function DashboardPage() {
           <p>下一步会限制只有被邀请或被你审批的人才能进入个人空间。</p>
         </article>
         <article className="card">
-          <p className="card-meta">Next</p>
+          <p className="card-meta">Private</p>
           <h2>私密日记</h2>
           <p>登录打通后，我们会把私密日记保存到 Supabase，并用权限规则保护。</p>
+          <a className="card-link" href="/dashboard/diary">
+            打开日记
+          </a>
+        </article>
+        <article className="card">
+          <p className="card-meta">Today</p>
+          <h2>待办和计时</h2>
+          <p>这里会保存每日待办、专注计时和完成记录。</p>
+          <a className="card-link" href="/dashboard/todos">
+            打开待办
+          </a>
         </article>
       </section>
     </main>

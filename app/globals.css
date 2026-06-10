@@ -385,6 +385,54 @@ h3 {
   margin-top: 22px;
 }
 
+.card-link {
+  display: inline-flex;
+  margin-top: 14px;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.editor-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.editor-panel label {
+  font-weight: 800;
+}
+
+.editor-panel input,
+.editor-panel textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+}
+
+.editor-panel textarea {
+  resize: vertical;
+}
+
+.editor-panel button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.todo-preview-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
 @media (max-width: 760px) {
   .site-header {
     align-items: flex-start;
