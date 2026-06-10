@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yunan's Space</title>
+    <meta
+      name="description"
+      content="一个个人知识空间：文章、课程笔记、待办、计时和私密日记。"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html">Yunan's Space</a>
+      <nav class="nav" aria-label="主导航">
+        <a href="#writing">文章</a>
+        <a href="#library">资料库</a>
+        <a href="#today">今日</a>
+        <a href="#private">私密</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Personal knowledge space</p>
+          <h1>记录想法、课程笔记、今天要做的事。</h1>
+          <p>
+            这里会慢慢长成一个个人网站：公开文章给大家看，私密日记只给自己看，
+            受邀朋友可以在自己的空间写文章，也可以在授权后一起编辑部分文档。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#writing">看网站雏形</a>
+            <a class="button secondary" href="#roadmap">开发路线</a>
+          </div>
+        </div>
+        <aside class="hero-panel" aria-label="当前阶段">
+          <span class="panel-label">当前阶段</span>
+          <strong>Step 1</strong>
+          <p>先做一个可以上线的静态版本，然后再接登录、数据库和文件存储。</p>
+        </aside>
+      </section>
+
+      <section class="section" id="writing">
+        <div class="section-heading">
+          <p class="eyebrow">Writing</p>
+          <h2>公开文章</h2>
+        </div>
+        <div class="grid two">
+          <article class="card">
+            <p class="card-meta">草稿 · 个人网站</p>
+            <h3>为什么我要建这个网站</h3>
+            <p>
+              这里以后会放第一篇公开文章。现在先保留成占位，下一步我们会做文章列表和文章详情页。
+            </p>
+          </article>
+          <article class="card">
+            <p class="card-meta">计划 · 学习笔记</p>
+            <h3>课程 PDF 和笔记整理</h3>
+            <p>
+              之后可以上传旧课件、PDF、笔记，并用标签和搜索把它们组织起来。
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="library">
+        <div class="section-heading">
+          <p class="eyebrow">Library</p>
+          <h2>资料库</h2>
+        </div>
+        <div class="library-list">
+          <div>
+            <strong>课程 PDF</strong>
+            <span>未来接 Supabase Storage 上传和权限控制</span>
+          </div>
+          <div>
+            <strong>课堂笔记</strong>
+            <span>按课程、学期、标签分类</span>
+          </div>
+          <div>
+            <strong>协作文档</strong>
+            <span>受邀用户被授权后才可以编辑</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section split" id="today">
+        <div>
+          <p class="eyebrow">Today</p>
+          <h2>今日待办和计时</h2>
+          <p>
+            这个模块之后会变成真正的 to-do list，可以记录任务、开始计时、保存完成记录。
+          </p>
+        </div>
+        <div class="todo-box">
+          <label class="todo-item">
+            <input type="checkbox" checked />
+            <span>确定网站技术路线</span>
+          </label>
+          <label class="todo-item">
+            <input type="checkbox" />
+            <span>做出第一个首页</span>
+          </label>
+          <label class="todo-item">
+            <input type="checkbox" />
+            <span>部署到免费平台</span>
+          </label>
+          <button class="timer-button" type="button" id="timerButton">开始 25 分钟计时</button>
+          <p class="timer-status" id="timerStatus">计时器还没有开始。</p>
+        </div>
+      </section>
+
+      <section class="section split private-section" id="private">
+        <div>
+          <p class="eyebrow">Private</p>
+          <h2>私密日记</h2>
+          <p>
+            上线后，日记内容不会放在公开页面里。我们会用登录和数据库权限保证只有你自己能看到。
+          </p>
+        </div>
+        <div class="diary-preview" aria-label="私密日记示意">
+          <p>今天想记录的事...</p>
+          <span>Locked until login is ready</span>
+        </div>
+      </section>
+
+      <section class="section" id="roadmap">
+        <div class="section-heading">
+          <p class="eyebrow">Roadmap</p>
+          <h2>下一步怎么走</h2>
+        </div>
+        <ol class="roadmap">
+          <li>本地打开这个静态网站。</li>
+          <li>把它部署到 Vercel 或 Cloudflare Pages。</li>
+          <li>安装完整 Node/npm 环境，升级到 Next.js。</li>
+          <li>接 Supabase：登录、数据库、权限、文件存储。</li>
+          <li>逐个完成文章、资料库、待办计时、私密日记。</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Built step by step.</span>
+      <span>Yunan's Space</span>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
