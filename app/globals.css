@@ -999,7 +999,8 @@ h3 {
 .todo-card-content {
   display: grid;
   min-width: 0;
-  gap: 10px;
+  gap: 8px;
+  justify-items: start;
 }
 
 .todo-card-controls {
@@ -1099,28 +1100,31 @@ h3 {
 }
 
 .task-focus-list .todo-item {
-  display: inline-flex;
-  width: fit-content;
+  display: flex;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
   align-items: center;
   justify-content: flex-start;
   justify-self: start;
-  gap: 10px;
+  gap: 8px;
 }
 
 .task-focus-list .todo-item span {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
-  max-width: min(520px, 100%);
-  overflow: hidden;
+  max-width: 100%;
+  overflow: visible;
   font-size: 18px;
   font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .task-focus-list .todo-item input {
+  flex: 0 0 auto;
   margin: 0;
 }
 
