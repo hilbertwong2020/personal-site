@@ -61,6 +61,7 @@ export default function DiaryPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [speechLanguage, setSpeechLanguage] = useState("zh-CN");
+  const [speechPreview, setSpeechPreview] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -180,6 +181,7 @@ export default function DiaryPage() {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
+      setSpeechPreview("");
       return;
     }
 
@@ -193,32 +195,39 @@ export default function DiaryPage() {
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.lang = speechLanguage;
 
     recognition.onresult = (event) => {
       let finalText = "";
+      let interimText = "";
 
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index];
 
         if (result.isFinal) {
           finalText += result[0].transcript;
+        } else {
+          interimText += result[0].transcript;
         }
       }
 
       if (finalText) {
         insertSpeechText(`${finalText.trim()} `);
       }
+
+      setSpeechPreview(interimText.trim());
     };
 
     recognition.onerror = (event) => {
       setIsListening(false);
+      setSpeechPreview("");
       setMessage(`语音输入停止：${event.error}`);
     };
 
     recognition.onend = () => {
       setIsListening(false);
+      setSpeechPreview("");
     };
 
     recognitionRef.current = recognition;
@@ -301,7 +310,7 @@ export default function DiaryPage() {
           <a className="mini-button" href="/dashboard/todos">
             待办和计时
           </a>
-          <p className="version-marker">版本标记：VOICE-DIARY</p>
+          <p className="version-marker">版本标记：LIVE-VOICE</p>
         </div>
         <h1>私密日记</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -443,6 +452,12 @@ export default function DiaryPage() {
               清格式
             </button>
           </div>
+          {isListening || speechPreview ? (
+            <div className="speech-preview" aria-live="polite">
+              <span>实时语音预览</span>
+              <p>{speechPreview || "正在听...你说的话会先显示在这里。"}</p>
+            </div>
+          ) : null}
           <div
             className="rich-editor"
             contentEditable={Boolean(user)}
