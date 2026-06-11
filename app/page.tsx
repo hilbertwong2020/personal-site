@@ -36,7 +36,7 @@ export default function Home() {
         <nav className="nav" aria-label="主导航">
           <a href="/posts">文章</a>
           <a href="#library">资料库</a>
-          <a href="#today">今日</a>
+          <a href="/dashboard/todos">待办和计时</a>
           <a href="#private">私密</a>
           <a href="/login">登录</a>
         </nav>
@@ -54,6 +54,9 @@ export default function Home() {
             <div className="hero-actions">
               <a className="button primary" href="#writing">
                 看网站雏形
+              </a>
+              <a className="button secondary" href="/dashboard/todos">
+                打开待办和计时
               </a>
               <a className="button secondary" href="#roadmap">
                 开发路线
@@ -118,8 +121,11 @@ export default function Home() {
             <p className="eyebrow">Today</p>
             <h2>今日待办和计时</h2>
             <p>
-              这个模块之后会变成真正的 to-do list，可以记录任务、开始计时、保存完成记录。
+              这个模块已经连接到真正的 Today dashboard，可以记录任务、开始计时、保存完成记录。
             </p>
+            <a className="button primary" href="/dashboard/todos">
+              进入待办和计时
+            </a>
           </div>
           <div className="todo-box">
             <label className="todo-item">

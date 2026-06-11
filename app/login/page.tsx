@@ -13,6 +13,28 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  async function handleGoogleLogin() {
+    setIsLoading(true);
+    setMessage("");
+
+    const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard/todos`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
+    });
+
+    if (error) {
+      setIsLoading(false);
+      setMessage(error.message);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
@@ -37,7 +59,7 @@ export default function LoginPage() {
       }
 
       if (data.session) {
-        window.location.replace("/dashboard");
+        window.location.replace("/dashboard/todos");
         return;
       }
 
@@ -57,7 +79,7 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.replace("/dashboard");
+    window.location.replace("/dashboard/todos");
   }
 
   return (
@@ -65,7 +87,11 @@ export default function LoginPage() {
       <section className="auth-card">
         <p className="eyebrow">Private access</p>
         <h1>登录 Wang&apos;s Space</h1>
-        <p>现在先使用邮箱和密码注册/登录。用户名先作为显示名保存，后面再做邀请制和管理员审批。</p>
+        <p>可以使用 Gmail 登录，也可以继续使用邮箱和密码。后面再做邀请制和管理员审批。</p>
+        <button className="button google-button" type="button" onClick={handleGoogleLogin} disabled={isLoading}>
+          使用 Gmail / Google 登录
+        </button>
+        <div className="auth-divider">或者使用邮箱密码</div>
         <div className="auth-tabs" aria-label="登录模式">
           <button
             className={mode === "sign-in" ? "active" : undefined}

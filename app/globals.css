@@ -650,6 +650,37 @@ h3 {
   margin-top: 24px;
 }
 
+.google-button {
+  width: 100%;
+  margin-top: 18px;
+  border-color: var(--line);
+  background: white;
+  color: var(--text);
+}
+
+.google-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.auth-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  background: var(--line);
+}
+
 .auth-tabs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

@@ -8,6 +8,12 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     async function finishLogin() {
+      const searchParams = new URLSearchParams(window.location.search);
+      const requestedNextPath = searchParams.get("next");
+      const nextPath =
+        requestedNextPath?.startsWith("/") && !requestedNextPath.startsWith("//")
+          ? requestedNextPath
+          : "/dashboard/todos";
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       const hashError = hashParams.get("error_description") || hashParams.get("error");
 
@@ -21,11 +27,11 @@ export default function AuthCallbackPage() {
       } = await supabase.auth.getSession();
 
       if (existingSession) {
-        window.location.replace("/dashboard");
+        window.location.replace(nextPath);
         return;
       }
 
-      const code = new URLSearchParams(window.location.search).get("code");
+      const code = searchParams.get("code");
 
       if (!code) {
         setMessage("登录链接无效或已过期。请回到登录页重新发送一封邮件。");
@@ -39,7 +45,7 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      window.location.replace("/dashboard");
+      window.location.replace(nextPath);
     }
 
     finishLogin();
