@@ -198,6 +198,7 @@ function parseGoogleCalendarIcs(text: string): WeekBlock[] {
 function buildWeekBlocks(sessions: TimeSession[], todosById: Record<string, Todo>, selectedDate: string) {
   const dates = weekDates(selectedDate);
   const dateSet = new Set(dates);
+  const mergeGapMinutes = 10;
   const sortedSessions = sessions
     .filter((session) => session.ended_at)
     .map((session) => {
@@ -211,32 +212,44 @@ function buildWeekBlocks(sessions: TimeSession[], todosById: Record<string, Todo
       };
     })
     .filter((session) => dateSet.has(session.day) && todosById[session.todo_id])
-    .sort((a, b) => a.day.localeCompare(b.day) || a.startMinutes - b.startMinutes);
+    .sort(
+      (a, b) =>
+        a.day.localeCompare(b.day) ||
+        a.todo_id.localeCompare(b.todo_id) ||
+        a.startMinutes - b.startMinutes ||
+        a.endMinutes - b.endMinutes,
+    );
 
-  return sortedSessions.reduce<WeekBlock[]>((blocks, session) => {
-    const todo = todosById[session.todo_id];
-    const previous = blocks[blocks.length - 1];
+  const groupedSessions = sortedSessions.reduce<Record<string, typeof sortedSessions>>((groups, session) => {
+    const key = `${session.day}:${session.todo_id}`;
+    groups[key] = groups[key] ?? [];
+    groups[key].push(session);
+    return groups;
+  }, {});
 
-    if (
-      previous &&
-      previous.day === session.day &&
-      previous.id === session.todo_id &&
-      session.startMinutes - previous.endMinutes <= 15
-    ) {
-      previous.endMinutes = Math.max(previous.endMinutes, session.endMinutes);
-      return blocks;
-    }
+  return Object.values(groupedSessions)
+    .flatMap((group) =>
+      group.reduce<WeekBlock[]>((blocks, session) => {
+        const todo = todosById[session.todo_id];
+        const previous = blocks[blocks.length - 1];
 
-    blocks.push({
-      id: session.todo_id,
-      day: session.day,
-      title: todo.title,
-      startMinutes: session.startMinutes,
-      endMinutes: session.endMinutes,
-      source: "todo",
-    });
-    return blocks;
-  }, []);
+        if (previous && session.startMinutes - previous.endMinutes <= mergeGapMinutes) {
+          previous.endMinutes = Math.max(previous.endMinutes, session.endMinutes);
+          return blocks;
+        }
+
+        blocks.push({
+          id: session.todo_id,
+          day: session.day,
+          title: todo.title,
+          startMinutes: session.startMinutes,
+          endMinutes: session.endMinutes,
+          source: "todo",
+        });
+        return blocks;
+      }, []),
+    )
+    .sort((a, b) => a.day.localeCompare(b.day) || a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes);
 }
 
 function formatMinutes(totalMinutes: number) {
@@ -297,6 +310,41 @@ function sumBy<T>(items: T[], getKey: (item: T) => string, getMinutes: (item: T)
     totals[key] = (totals[key] ?? 0) + getMinutes(item);
     return totals;
   }, {});
+}
+
+function layoutWeekBlocks(blocks: WeekBlock[], dates: string[]) {
+  return dates.flatMap((date) => {
+    const dayBlocks = blocks
+      .filter((block) => block.day === date)
+      .sort((a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes);
+    const clusters: WeekBlock[][] = [];
+
+    dayBlocks.forEach((block) => {
+      const currentCluster = clusters[clusters.length - 1];
+      const clusterEnd = currentCluster ? Math.max(...currentCluster.map((item) => item.endMinutes)) : -Infinity;
+
+      if (!currentCluster || block.startMinutes >= clusterEnd) {
+        clusters.push([block]);
+        return;
+      }
+
+      currentCluster.push(block);
+    });
+
+    return clusters.flatMap((cluster) => {
+      const laneEnds: number[] = [];
+      const laidOutCluster = cluster.map((block) => {
+        const laneIndex = laneEnds.findIndex((endMinutes) => block.startMinutes >= endMinutes);
+        const lane = laneIndex === -1 ? laneEnds.length : laneIndex;
+        laneEnds[lane] = block.endMinutes;
+
+        return { ...block, lane };
+      });
+      const laneCount = Math.max(1, laneEnds.length);
+
+      return laidOutCluster.map((block) => ({ ...block, laneCount }));
+    });
+  });
 }
 
 export default function TodosPage() {
@@ -909,7 +957,7 @@ export default function TodosPage() {
             <a className="mini-button" href="/">
               回到主页
             </a>
-            <p className="version-marker">版本标记：CAL-FIX</p>
+            <p className="version-marker">版本标记：CAL-MERGE-10</p>
           </div>
           <h1>待办和计时</h1>
           {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -1411,6 +1459,7 @@ function WeekCalendar({
   const endHour = 22;
   const dayStart = startHour * 60;
   const dayMinutes = (endHour - startHour) * 60;
+  const laidOutBlocks = layoutWeekBlocks(blocks, dates);
   const inputId = isExpanded ? "google-calendar-import-full" : "google-calendar-import-mini";
 
   return (
@@ -1474,7 +1523,7 @@ function WeekCalendar({
                 />
               ))}
             </div>
-            {blocks.map((block, index) => {
+            {laidOutBlocks.map((block, index) => {
               const dayIndex = dates.indexOf(block.day);
 
               if (dayIndex < 0) {
@@ -1485,14 +1534,17 @@ function WeekCalendar({
               const clippedEnd = Math.min(endHour * 60, block.endMinutes);
               const top = ((clippedStart - dayStart) / dayMinutes) * 100;
               const height = Math.max(0.7, ((clippedEnd - clippedStart) / dayMinutes) * 100);
+              const dayWidth = 100 / 7;
+              const blockLeft = dayIndex * dayWidth + (block.lane * dayWidth) / block.laneCount;
+              const blockWidth = dayWidth / block.laneCount;
 
               return (
                 <article
                   className={block.source === "google" ? "calendar-event google-event" : "calendar-event todo-event"}
                   style={{
-                    left: `${(dayIndex / 7) * 100}%`,
+                    left: `${blockLeft}%`,
                     top: `${top}%`,
-                    width: `calc(${100 / 7}% - 6px)`,
+                    width: `calc(${blockWidth}% - 6px)`,
                     height: `${height}%`,
                   }}
                   key={`${block.source}-${block.day}-${block.id}-${index}`}
