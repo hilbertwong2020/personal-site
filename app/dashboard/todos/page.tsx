@@ -42,6 +42,14 @@ type DailyReview = {
   ai_tags: string[];
 };
 
+type WeekBlock = {
+  id: string;
+  day: string;
+  title: string;
+  startMinutes: number;
+  endMinutes: number;
+};
+
 const defaultCategories = ["学习", "工作", "生活", "研究", "网站开发"];
 const defaultSubcategories = ["统计", "编程", "阅读", "写作", "行政", "其他"];
 
@@ -89,6 +97,75 @@ function dayBounds(date: string) {
     start: start.toISOString(),
     end: end.toISOString(),
   };
+}
+
+function weekDates(date: string) {
+  const selected = parseIsoDate(date);
+  const sunday = new Date(selected);
+  sunday.setDate(selected.getDate() - selected.getDay());
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(sunday);
+    day.setDate(sunday.getDate() + index);
+    return toIsoDate(day);
+  });
+}
+
+function minutesFromMidnight(date: Date) {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function formatTimeRange(startMinutes: number, endMinutes: number) {
+  const format = (minutes: number) => {
+    const date = new Date();
+    date.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+  };
+
+  return `${format(startMinutes)} – ${format(endMinutes)}`;
+}
+
+function buildWeekBlocks(sessions: TimeSession[], todosById: Record<string, Todo>, selectedDate: string) {
+  const dates = weekDates(selectedDate);
+  const dateSet = new Set(dates);
+  const sortedSessions = sessions
+    .filter((session) => session.ended_at)
+    .map((session) => {
+      const start = new Date(session.started_at);
+      const end = new Date(session.ended_at ?? session.started_at);
+      return {
+        ...session,
+        day: toIsoDate(start),
+        startMinutes: minutesFromMidnight(start),
+        endMinutes: Math.max(minutesFromMidnight(start) + 1, minutesFromMidnight(end)),
+      };
+    })
+    .filter((session) => dateSet.has(session.day) && todosById[session.todo_id])
+    .sort((a, b) => a.day.localeCompare(b.day) || a.startMinutes - b.startMinutes);
+
+  return sortedSessions.reduce<WeekBlock[]>((blocks, session) => {
+    const todo = todosById[session.todo_id];
+    const previous = blocks[blocks.length - 1];
+
+    if (
+      previous &&
+      previous.day === session.day &&
+      previous.id === session.todo_id &&
+      session.startMinutes - previous.endMinutes <= 15
+    ) {
+      previous.endMinutes = Math.max(previous.endMinutes, session.endMinutes);
+      return blocks;
+    }
+
+    blocks.push({
+      id: session.todo_id,
+      day: session.day,
+      title: todo.title,
+      startMinutes: session.startMinutes,
+      endMinutes: session.endMinutes,
+    });
+    return blocks;
+  }, []);
 }
 
 function formatMinutes(totalMinutes: number) {
@@ -155,6 +232,7 @@ export default function TodosPage() {
   const [user, setUser] = useState<User | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [allTodos, setAllTodos] = useState<Todo[]>([]);
   const [sessions, setSessions] = useState<TimeSession[]>([]);
   const [allSessions, setAllSessions] = useState<TimeSession[]>([]);
   const [review, setReview] = useState<DailyReview | null>(null);
@@ -211,6 +289,15 @@ export default function TodosPage() {
     [todos],
   );
 
+  const allTodoById = useMemo(
+    () =>
+      allTodos.reduce<Record<string, Todo>>((lookup, todo) => {
+        lookup[todo.id] = todo;
+        return lookup;
+      }, {}),
+    [allTodos],
+  );
+
   const goalById = useMemo(
     () =>
       goals.reduce<Record<string, Goal>>((lookup, goal) => {
@@ -244,6 +331,8 @@ export default function TodosPage() {
   const completedTodos = todos.filter((todo) => todo.completed);
   const incompleteTodos = todos.filter((todo) => !todo.completed);
   const activeSessions = allSessions.filter((session) => !session.ended_at);
+  const selectedWeekDates = useMemo(() => weekDates(today), [today]);
+  const weekBlocks = useMemo(() => buildWeekBlocks(allSessions, allTodoById, today), [allSessions, allTodoById, today]);
   const timeGapTodos = todos.filter((todo) => {
     const actualMinutes = (sessionsByTodoId[todo.id] ?? []).reduce((total, session) => total + sessionMinutes(session), 0);
     return todo.estimated_minutes !== null && Math.abs(actualMinutes - todo.estimated_minutes) >= 30;
@@ -261,7 +350,7 @@ export default function TodosPage() {
       if (currentUser) {
         const selectedDayBounds = dayBounds(today);
         const todoDateFilter = today === realToday ? `due_on.is.null,due_on.eq.${today}` : `due_on.eq.${today}`;
-        const [goalsResult, todosResult, sessionsResult, allSessionsResult, reviewResult] = await Promise.all([
+        const [goalsResult, todosResult, allTodosResult, sessionsResult, allSessionsResult, reviewResult] = await Promise.all([
           supabase
             .from("goals")
             .select("id,title,description,target_date,created_at")
@@ -274,6 +363,10 @@ export default function TodosPage() {
             .eq("owner_id", currentUser.id)
             .or(todoDateFilter)
             .order("created_at", { ascending: false }),
+          supabase
+            .from("todos")
+            .select("id,title,completed,category,subcategory,estimated_minutes,goal_id,notes,ai_tags,created_at")
+            .eq("owner_id", currentUser.id),
           supabase
             .from("task_time_sessions")
             .select("id,todo_id,goal_id,started_at,ended_at,duration_seconds")
@@ -295,13 +388,19 @@ export default function TodosPage() {
         ]);
 
         const firstError =
-          goalsResult.error ?? todosResult.error ?? sessionsResult.error ?? allSessionsResult.error ?? reviewResult.error;
+          goalsResult.error ??
+          todosResult.error ??
+          allTodosResult.error ??
+          sessionsResult.error ??
+          allSessionsResult.error ??
+          reviewResult.error;
 
         if (firstError) {
           setMessage(firstError.message);
         } else {
           setGoals((goalsResult.data ?? []) as Goal[]);
           setTodos((todosResult.data ?? []) as Todo[]);
+          setAllTodos((allTodosResult.data ?? []) as Todo[]);
           setSessions((sessionsResult.data ?? []) as TimeSession[]);
           setAllSessions((allSessionsResult.data ?? []) as TimeSession[]);
           setReview((reviewResult.data as DailyReview | null) ?? null);
@@ -412,10 +511,41 @@ export default function TodosPage() {
     }
 
     setTodos((currentTodos) => [data as Todo, ...currentTodos]);
+    setAllTodos((currentTodos) => [data as Todo, ...currentTodos]);
     setNewTodo("");
     setNotes("");
     setShowMoreOptions(false);
     setMessage("待办已添加。");
+  }
+
+  async function updateTodoEstimate(todo: Todo, value: string) {
+    if (!user) {
+      setMessage("请先登录。");
+      return;
+    }
+
+    const nextEstimatedMinutes = value ? Number(value) : null;
+
+    if (nextEstimatedMinutes !== null && (!Number.isFinite(nextEstimatedMinutes) || nextEstimatedMinutes < 0)) {
+      setMessage("请输入有效的预计分钟数。");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("todos")
+      .update({ estimated_minutes: nextEstimatedMinutes })
+      .eq("id", todo.id);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    const updateTodo = (currentTodo: Todo) =>
+      currentTodo.id === todo.id ? { ...currentTodo, estimated_minutes: nextEstimatedMinutes } : currentTodo;
+    setTodos((currentTodos) => currentTodos.map(updateTodo));
+    setAllTodos((currentTodos) => currentTodos.map(updateTodo));
+    setMessage("倒计时时长已更新。");
   }
 
   async function toggleTodo(todo: Todo) {
@@ -588,6 +718,7 @@ export default function TodosPage() {
     }
 
     setTodos((currentTodos) => currentTodos.filter((currentTodo) => currentTodo.id !== todo.id));
+    setAllTodos((currentTodos) => currentTodos.filter((currentTodo) => currentTodo.id !== todo.id));
     setSessions((currentSessions) => currentSessions.filter((session) => session.todo_id !== todo.id));
     setAllSessions((currentSessions) => currentSessions.filter((session) => session.todo_id !== todo.id));
     setMessage("待办已删除。");
@@ -628,7 +759,7 @@ export default function TodosPage() {
       <section className="dashboard-hero">
         <div className="todos-hero-copy">
           <p className="eyebrow">Today</p>
-          <p className="version-marker">版本标记：CALENDAR-DAY</p>
+          <p className="version-marker">版本标记：WEEK-PLAN</p>
           <h1>待办和计时</h1>
           {isLoading ? <p>正在读取登录状态...</p> : null}
           {!isLoading && !user ? (
@@ -679,6 +810,38 @@ export default function TodosPage() {
                 <span className="calendar-empty" key={`empty-${index}`} />
               ),
             )}
+          </div>
+        </aside>
+
+        <aside className="week-panel" aria-label="一周计划">
+          <div className="week-header">
+            <strong>一周计划</strong>
+            <span>{today}</span>
+          </div>
+          <div className="week-days">
+            {selectedWeekDates.map((date) => (
+              <div className={date === today ? "week-day selected" : "week-day"} key={date}>
+                <span>{parseIsoDate(date).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}</span>
+                <strong>{parseIsoDate(date).getDate()}</strong>
+              </div>
+            ))}
+          </div>
+          <div className="week-timeline">
+            {["8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM"].map((time) => (
+              <span key={time}>{time}</span>
+            ))}
+          </div>
+          <div className="week-blocks">
+            {weekBlocks.length === 0 ? <p className="timer-status">本周还没有计时记录。</p> : null}
+            {weekBlocks.map((block, index) => (
+              <article className="week-block" key={`${block.day}-${block.id}-${index}`}>
+                <strong>{block.title}</strong>
+                <span>
+                  {parseIsoDate(block.day).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()} ·{" "}
+                  {formatTimeRange(block.startMinutes, block.endMinutes)}
+                </span>
+              </article>
+            ))}
           </div>
         </aside>
       </section>
@@ -949,6 +1112,15 @@ export default function TodosPage() {
                         <span>{timerLabel}</span>
                         <strong>{formatClock(timerSeconds)}</strong>
                       </div>
+                        <input
+                          className="estimate-edit"
+                          type="number"
+                          min="0"
+                          defaultValue={todo.estimated_minutes ?? ""}
+                          aria-label={`修改 ${todo.title} 的倒计时分钟`}
+                          onBlur={(event) => updateTodoEstimate(todo, event.target.value)}
+                          disabled={!user}
+                        />
                         {activeSession ? (
                           <button
                             className="button primary compact-action"

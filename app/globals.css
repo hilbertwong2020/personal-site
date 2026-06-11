@@ -322,7 +322,7 @@ h3 {
 
 .todos-page .dashboard-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 0.9fr) 320px minmax(320px, 0.95fr);
   gap: 24px;
   align-items: start;
   padding: 28px 32px;
@@ -338,15 +338,19 @@ h3 {
   font-size: 14px;
 }
 
-.calendar-panel {
+.calendar-panel,
+.week-panel {
   align-self: stretch;
   display: grid;
   gap: 10px;
-  max-width: 360px;
   border: 1px solid rgba(222, 216, 204, 0.82);
   border-radius: 8px;
   background: rgba(255, 253, 248, 0.76);
   padding: 14px;
+}
+
+.calendar-panel {
+  max-width: 320px;
 }
 
 .calendar-header,
@@ -400,6 +404,91 @@ h3 {
 .calendar-day.selected {
   background: var(--accent);
   color: white;
+}
+
+.week-panel {
+  max-height: 224px;
+  overflow: hidden;
+}
+
+.week-header,
+.week-days {
+  display: grid;
+  gap: 6px;
+}
+
+.week-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.week-header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.week-days {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.week-day {
+  display: grid;
+  justify-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 5px;
+}
+
+.week-day span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.week-day strong {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.week-day.selected strong {
+  border: 2px solid #23649c;
+}
+
+.week-timeline {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.week-blocks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.week-block {
+  display: grid;
+  gap: 2px;
+  border-radius: 6px;
+  background: #3b9ddd;
+  color: white;
+  padding: 6px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.week-block strong,
+.week-block span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .todos-page .editor-panel h2,
@@ -876,6 +965,18 @@ h3 {
   background: var(--surface-strong);
 }
 
+.estimate-edit {
+  width: 62px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 8px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+}
+
 .compact-action {
   min-height: 38px;
   padding: 0 14px;
@@ -1077,6 +1178,10 @@ h3 {
 
   .calendar-panel {
     max-width: none;
+  }
+
+  .week-panel {
+    max-height: none;
   }
 
   .goal-column,
