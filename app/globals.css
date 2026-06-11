@@ -450,11 +450,19 @@ h3 {
   margin-top: 22px;
 }
 
-.dashboard-grid {
+.dashboard-grid,
+.summary-grid-four {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-top: 22px;
+}
+
+.dashboard-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summary-grid-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .card-link {
@@ -537,6 +545,15 @@ h3 {
 .todo-card {
   display: grid;
   gap: 12px;
+}
+
+.todo-card-running {
+  border-color: rgba(46, 111, 94, 0.72);
+  background: linear-gradient(90deg, rgba(46, 111, 94, 0.1), var(--surface) 42%);
+}
+
+.todo-card-completed {
+  opacity: 0.68;
 }
 
 .stat-card {
@@ -671,7 +688,22 @@ h3 {
 }
 
 .todo-card-main {
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+}
+
+.todo-card-content {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.todo-card-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .task-meta-row {
@@ -712,6 +744,24 @@ h3 {
 .timer-pill.active {
   border-color: rgba(46, 111, 94, 0.45);
   background: rgba(46, 111, 94, 0.12);
+}
+
+.compact-action {
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.task-focus-list .todo-item {
+  min-width: 0;
+}
+
+.task-focus-list .todo-item span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .writing-layout {
@@ -816,7 +866,9 @@ h3 {
   .stats-grid,
   .form-grid,
   .goal-task-layout,
-  .quick-add-row {
+  .quick-add-row,
+  .summary-grid-four,
+  .todo-card-main {
     grid-template-columns: 1fr;
   }
 
@@ -833,6 +885,14 @@ h3 {
 
   .timer-pill {
     justify-items: start;
+  }
+
+  .todo-card-controls {
+    justify-content: space-between;
+  }
+
+  .task-focus-list .todo-item span {
+    white-space: normal;
   }
 
   .writing-layout {

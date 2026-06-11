@@ -42,7 +42,7 @@ type DailyReview = {
 };
 
 const defaultCategories = ["学习", "工作", "生活", "研究", "网站开发"];
-const defaultSubcategories = ["统计", "编程", "阅读", "写作", "行政"];
+const defaultSubcategories = ["统计", "编程", "阅读", "写作", "行政", "其他"];
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -618,11 +618,13 @@ export default function TodosPage() {
                 <p className="eyebrow">Task list</p>
                 <h2>今天的待办列表</h2>
               </div>
-              <span className="list-count">{todos.length} 项</span>
+              <span className="list-count">TASK-CARDS · {todos.length} 项</span>
             </div>
             <div className="todo-preview-list task-focus-list">
               {todos.length === 0 ? <p className="timer-status">还没有待办。登录后可以添加今天的任务。</p> : null}
-              {todos.map((todo) => {
+              {[...todos]
+                .sort((a, b) => Number(a.completed) - Number(b.completed))
+                .map((todo) => {
                 const todoSessions = sessionsByTodoId[todo.id] ?? [];
                 const actualSeconds = todoSessions.reduce((total, session) => total + sessionSeconds(session), 0);
                 const actualMinutes = Math.round(actualSeconds / 60);
@@ -633,8 +635,18 @@ export default function TodosPage() {
                   estimatedSeconds === null ? actualSeconds : Math.max(0, estimatedSeconds - actualSeconds);
 
                 return (
-                  <article className="todo-card" key={todo.id}>
+                  <article
+                    className={[
+                      "todo-card",
+                      activeSession ? "todo-card-running" : "",
+                      todo.completed ? "todo-card-completed" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    key={todo.id}
+                  >
                     <div className="todo-card-main">
+                      <div className="todo-card-content">
                       <label className="todo-item">
                         <input
                           type="checkbox"
@@ -644,38 +656,42 @@ export default function TodosPage() {
                         />
                         <span className={todo.completed ? "todo-done" : undefined}>{todo.title}</span>
                       </label>
+                        <div className="task-meta-row">
+                          <span>{goalTitle || "无长期目标"}</span>
+                          <span>{todo.category} / {todo.subcategory}</span>
+                          <span>
+                            {todo.estimated_minutes ? `预计 ${formatMinutes(todo.estimated_minutes)}` : "无预计时间"}
+                          </span>
+                          <span>实际 {formatMinutes(actualMinutes)}</span>
+                          <span>{todoSessions.length ? `计时段数 ${todoSessions.length}` : "未计时"}</span>
+                        </div>
+                        {todo.notes ? <p>{todo.notes}</p> : null}
+                      </div>
+                      <div className="todo-card-controls">
                       <div className={activeSession ? "timer-pill active" : "timer-pill"}>
                         <span>{activeSession ? "计时中" : estimatedSeconds ? "剩余" : "累计"}</span>
                         <strong>{formatClock(remainingSeconds)}</strong>
                       </div>
-                    </div>
-                    <div className="task-meta-row">
-                      <span>{todo.category} / {todo.subcategory}</span>
-                      <span>{goalTitle || "无长期目标"}</span>
-                      <span>{todo.estimated_minutes ? `预计 ${formatMinutes(todo.estimated_minutes)}` : "无预计时间"}</span>
-                      <span>实际 {formatMinutes(actualMinutes)}</span>
-                    </div>
-                    {todo.notes ? <p>{todo.notes}</p> : null}
-                    <div className="dashboard-actions task-actions">
-                      <button
-                        className="button secondary"
-                        type="button"
-                        onClick={() => startTimer(todo)}
-                        disabled={!user || Boolean(activeSession)}
-                      >
-                        Start
-                      </button>
-                      <button
-                        className="button primary"
-                        type="button"
-                        onClick={() => stopTimer(todo)}
-                        disabled={!user || !activeSession}
-                      >
-                        Stop
-                      </button>
-                      <span className="timer-status">
-                        {todoSessions.length ? `今日计时段数：${todoSessions.length}` : "还没有计时记录"}
-                      </span>
+                        {activeSession ? (
+                          <button
+                            className="button primary compact-action"
+                            type="button"
+                            onClick={() => stopTimer(todo)}
+                            disabled={!user}
+                          >
+                            Stop
+                          </button>
+                        ) : (
+                          <button
+                            className="button secondary compact-action"
+                            type="button"
+                            onClick={() => startTimer(todo)}
+                            disabled={!user}
+                          >
+                            Start
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </article>
                 );
@@ -685,7 +701,7 @@ export default function TodosPage() {
         </div>
       </section>
 
-      <section className="dashboard-grid">
+      <section className="summary-grid-four">
         <StatsCard title="按大类" rows={minutesByCategory} />
         <StatsCard title="按小类" rows={minutesBySubcategory} />
         <StatsCard title="按长期目标" rows={minutesByGoal} />
@@ -697,6 +713,9 @@ export default function TodosPage() {
             <p key={todo.id}>{todo.title}</p>
           ))}
         </article>
+      </section>
+
+      <section className="dashboard-grid">
         <ListCard title="今天完成了" items={completedTodos.map((todo) => todo.title)} />
         <ListCard title="今天未完成" items={incompleteTodos.map((todo) => todo.title)} />
       </section>
