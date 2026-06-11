@@ -174,11 +174,12 @@ export default function TodosPage() {
     [goals],
   );
 
-  const totalMinutes = sessions.reduce((total, session) => total + sessionMinutes(session), 0);
-  const minutesByCategory = sumBy(sessions, (session) => todoById[session.todo_id]?.category, sessionMinutes);
-  const minutesBySubcategory = sumBy(sessions, (session) => todoById[session.todo_id]?.subcategory, sessionMinutes);
+  const visibleSessions = sessions.filter((session) => todoById[session.todo_id]);
+  const totalMinutes = visibleSessions.reduce((total, session) => total + sessionMinutes(session), 0);
+  const minutesByCategory = sumBy(visibleSessions, (session) => todoById[session.todo_id]?.category, sessionMinutes);
+  const minutesBySubcategory = sumBy(visibleSessions, (session) => todoById[session.todo_id]?.subcategory, sessionMinutes);
   const minutesByGoal = sumBy(
-    sessions,
+    visibleSessions,
     (session) => goalById[session.goal_id ?? todoById[session.todo_id]?.goal_id ?? ""]?.title ?? "无长期目标",
     sessionMinutes,
   );
@@ -187,12 +188,16 @@ export default function TodosPage() {
       return totals;
     }
 
+    if (!session.ended_at && !todoById[session.todo_id]) {
+      return totals;
+    }
+
     totals[session.goal_id] = (totals[session.goal_id] ?? 0) + sessionMinutes(session);
     return totals;
   }, {});
   const completedTodos = todos.filter((todo) => todo.completed);
   const incompleteTodos = todos.filter((todo) => !todo.completed);
-  const activeSessions = sessions.filter((session) => !session.ended_at);
+  const activeSessions = allSessions.filter((session) => !session.ended_at);
   const timeGapTodos = todos.filter((todo) => {
     const actualMinutes = (sessionsByTodoId[todo.id] ?? []).reduce((total, session) => total + sessionMinutes(session), 0);
     return todo.estimated_minutes !== null && Math.abs(actualMinutes - todo.estimated_minutes) >= 30;
@@ -438,11 +443,31 @@ export default function TodosPage() {
       return;
     }
 
-    const stoppedSessions = await Promise.all(activeSessions.map((session) => stopActiveSession(session)));
+    const visibleActiveSessions = activeSessions.filter((session) => todoById[session.todo_id]);
+    const hiddenActiveSessions = activeSessions.filter((session) => !todoById[session.todo_id]);
+    const stoppedSessions = await Promise.all(visibleActiveSessions.map((session) => stopActiveSession(session)));
     const validSessions = stoppedSessions.filter((session): session is TimeSession => Boolean(session));
 
     validSessions.forEach(applyStoppedSession);
-    setMessage(`已停止 ${validSessions.length} 个正在计时的任务。`);
+
+    if (hiddenActiveSessions.length > 0) {
+      const { error } = await supabase
+        .from("task_time_sessions")
+        .delete()
+        .in(
+          "id",
+          hiddenActiveSessions.map((session) => session.id),
+        );
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      removeSessions(hiddenActiveSessions.map((session) => session.id));
+    }
+
+    setMessage(`已停止 ${validSessions.length} 个任务，清理 ${hiddenActiveSessions.length} 个隐藏计时。`);
   }
 
   function applyStoppedSession(stoppedSession: TimeSession) {
@@ -452,6 +477,12 @@ export default function TodosPage() {
     setAllSessions((currentSessions) =>
       currentSessions.map((session) => (session.id === stoppedSession.id ? stoppedSession : session)),
     );
+  }
+
+  function removeSessions(sessionIds: string[]) {
+    const idSet = new Set(sessionIds);
+    setSessions((currentSessions) => currentSessions.filter((session) => !idSet.has(session.id)));
+    setAllSessions((currentSessions) => currentSessions.filter((session) => !idSet.has(session.id)));
   }
 
   async function stopActiveSession(activeSession: TimeSession) {
@@ -538,7 +569,7 @@ export default function TodosPage() {
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
         <p className="eyebrow">Today</p>
-        <p className="version-marker">版本标记：AUTO-STOP</p>
+        <p className="version-marker">版本标记：GHOST-FIX</p>
         <h1>待办和计时</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
         {!isLoading && !user ? (
