@@ -546,6 +546,22 @@ export default function TodosPage() {
                 placeholder="任务标题"
                 disabled={!user}
               />
+              <input
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                list="category-options"
+                aria-label="大类"
+                placeholder="大类"
+                disabled={!user}
+              />
+              <input
+                value={subcategory}
+                onChange={(event) => setSubcategory(event.target.value)}
+                list="subcategory-options"
+                aria-label="小类"
+                placeholder="小类"
+                disabled={!user}
+              />
               <select value={goalId} onChange={(event) => setGoalId(event.target.value)} disabled={!user}>
                 <option value="">无长期目标</option>
                 {goals.map((goal) => (
@@ -699,6 +715,45 @@ export default function TodosPage() {
             </div>
           </section>
         </div>
+
+        <aside className="editor-panel today-side-list">
+          <div className="panel-heading-row">
+            <div>
+              <p className="eyebrow">Today side</p>
+              <h2>今日列表</h2>
+            </div>
+            <span className="list-count">SIDE-LIST</span>
+          </div>
+          <div className="side-task-list">
+            {todos.length === 0 ? <p className="timer-status">还没有任务。</p> : null}
+            {[...todos]
+              .sort((a, b) => Number(a.completed) - Number(b.completed))
+              .map((todo) => {
+                const activeSession = activeSessionByTodoId[todo.id];
+
+                return (
+                  <label
+                    className={[
+                      "side-task-item",
+                      activeSession ? "side-task-running" : "",
+                      todo.completed ? "side-task-completed" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    key={todo.id}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={todo.completed}
+                      onChange={() => toggleTodo(todo)}
+                      disabled={!user}
+                    />
+                    <span>{todo.title}</span>
+                  </label>
+                );
+              })}
+          </div>
+        </aside>
       </section>
 
       <section className="summary-grid-four">

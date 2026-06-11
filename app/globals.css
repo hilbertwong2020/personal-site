@@ -587,13 +587,14 @@ h3 {
 
 .goal-task-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 350px) minmax(0, 1fr) minmax(220px, 280px);
   gap: 22px;
   margin-top: 28px;
   align-items: start;
 }
 
-.goal-column {
+.goal-column,
+.today-side-list {
   position: sticky;
   top: 92px;
 }
@@ -674,7 +675,7 @@ h3 {
 
 .quick-add-row {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px) 120px auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(90px, 0.55fr) minmax(90px, 0.55fr) minmax(130px, 0.75fr) 82px auto;
   gap: 10px;
   align-items: center;
 }
@@ -752,7 +753,12 @@ h3 {
 }
 
 .task-focus-list .todo-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
   min-width: 0;
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
 }
 
 .task-focus-list .todo-item span {
@@ -762,6 +768,56 @@ h3 {
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.task-focus-list .todo-item input {
+  margin: 0;
+}
+
+.today-side-list {
+  margin-top: 22px;
+}
+
+.today-side-list h2 {
+  font-size: 24px;
+}
+
+.side-task-list {
+  display: grid;
+  gap: 8px;
+}
+
+.side-task-item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: 9px 10px;
+  font-weight: 800;
+}
+
+.side-task-item input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.side-task-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-task-running {
+  border-color: rgba(46, 111, 94, 0.72);
+  background: rgba(46, 111, 94, 0.1);
+}
+
+.side-task-completed {
+  opacity: 0.62;
+  text-decoration: line-through;
 }
 
 .writing-layout {
@@ -872,7 +928,8 @@ h3 {
     grid-template-columns: 1fr;
   }
 
-  .goal-column {
+  .goal-column,
+  .today-side-list {
     position: static;
   }
 
