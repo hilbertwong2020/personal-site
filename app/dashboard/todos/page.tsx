@@ -478,7 +478,7 @@ export default function TodosPage() {
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
         <p className="eyebrow">Today</p>
-        <p className="version-marker">版本标记：GOAL-LEFT</p>
+        <p className="version-marker">版本标记：TIMER-OVER</p>
         <h1>待办和计时</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
         {!isLoading && !user ? (
@@ -696,8 +696,21 @@ export default function TodosPage() {
                 const activeSession = activeSessionByTodoId[todo.id];
                 const goalTitle = todo.goal_id ? goalById[todo.goal_id]?.title : "";
                 const estimatedSeconds = todo.estimated_minutes ? todo.estimated_minutes * 60 : null;
+                const overtimeSeconds =
+                  estimatedSeconds === null ? 0 : Math.max(0, actualSeconds - estimatedSeconds);
                 const remainingSeconds =
                   estimatedSeconds === null ? actualSeconds : Math.max(0, estimatedSeconds - actualSeconds);
+                const timerSeconds =
+                  estimatedSeconds !== null && overtimeSeconds > 0 ? overtimeSeconds : remainingSeconds;
+                const timerLabel =
+                  estimatedSeconds === null ? "累计" : overtimeSeconds > 0 ? "超时" : "倒计时";
+                const timerClassName = [
+                  "timer-pill",
+                  estimatedSeconds === null ? "elapsed" : overtimeSeconds > 0 ? "over" : "countdown",
+                  activeSession ? "active" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
 
                 return (
                   <article
@@ -733,9 +746,9 @@ export default function TodosPage() {
                         {todo.notes ? <p>{todo.notes}</p> : null}
                       </div>
                       <div className="todo-card-controls">
-                      <div className={activeSession ? "timer-pill active" : "timer-pill"}>
-                        <span>{activeSession ? "计时中" : estimatedSeconds ? "剩余" : "累计"}</span>
-                        <strong>{formatClock(remainingSeconds)}</strong>
+                      <div className={timerClassName}>
+                        <span>{timerLabel}</span>
+                        <strong>{formatClock(timerSeconds)}</strong>
                       </div>
                         {activeSession ? (
                           <button

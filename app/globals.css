@@ -766,6 +766,31 @@ h3 {
   background: rgba(46, 111, 94, 0.12);
 }
 
+.timer-pill.countdown {
+  border-color: rgba(46, 111, 94, 0.58);
+  background: rgba(46, 111, 94, 0.12);
+}
+
+.timer-pill.countdown span,
+.timer-pill.countdown strong {
+  color: var(--accent-dark);
+}
+
+.timer-pill.over {
+  border-color: rgba(171, 48, 48, 0.58);
+  background: rgba(171, 48, 48, 0.12);
+}
+
+.timer-pill.over span,
+.timer-pill.over strong {
+  color: #8f2424;
+}
+
+.timer-pill.elapsed {
+  border-color: var(--line);
+  background: var(--surface-strong);
+}
+
 .compact-action {
   min-height: 38px;
   padding: 0 14px;
