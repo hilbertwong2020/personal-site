@@ -828,6 +828,78 @@ h3 {
   opacity: 0.65;
 }
 
+.rich-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(247, 245, 240, 0.86);
+  padding: 10px;
+}
+
+.rich-toolbar select,
+.rich-toolbar button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rich-toolbar select {
+  padding: 0 10px;
+}
+
+.rich-toolbar button {
+  min-width: 38px;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.rich-toolbar button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.rich-editor {
+  min-height: 360px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: 18px;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.6;
+  outline: none;
+}
+
+.rich-editor:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(46, 111, 94, 0.12);
+}
+
+.rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+}
+
+.rich-editor h2,
+.rich-editor h3 {
+  margin: 0.8em 0 0.35em;
+}
+
+.rich-editor blockquote {
+  margin: 12px 0;
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+  color: var(--muted);
+}
+
 .todo-preview-list {
   display: grid;
   gap: 12px;

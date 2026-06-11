@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 
@@ -16,6 +16,7 @@ function todayIsoDate() {
 }
 
 export default function DiaryPage() {
+  const editorRef = useRef<HTMLDivElement | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [entry, setEntry] = useState<DiaryEntry | null>(null);
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
@@ -75,6 +76,48 @@ export default function DiaryPage() {
 
     loadData();
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = content;
+    }
+  }, [entry?.id, selectedDate]);
+
+  function syncEditorContent() {
+    setContent(editorRef.current?.innerHTML ?? "");
+  }
+
+  function runEditorCommand(command: string, value?: string) {
+    if (!user) {
+      return;
+    }
+
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    syncEditorContent();
+  }
+
+  function transformSelection(transform: (value: string) => string) {
+    if (!user) {
+      return;
+    }
+
+    editorRef.current?.focus();
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) {
+      return;
+    }
+
+    const text = selection.toString();
+
+    if (!text) {
+      return;
+    }
+
+    document.execCommand("insertText", false, transform(text));
+    syncEditorContent();
+  }
 
   async function saveDiary() {
     if (!user) {
@@ -150,7 +193,7 @@ export default function DiaryPage() {
           <a className="mini-button" href="/dashboard/todos">
             待办和计时
           </a>
-          <p className="version-marker">版本标记：DIARY-MVP</p>
+          <p className="version-marker">版本标记：RICH-DIARY</p>
         </div>
         <h1>私密日记</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -203,14 +246,88 @@ export default function DiaryPage() {
             placeholder="今天的标题"
             disabled={!user}
           />
-          <label htmlFor="diary-content">内容</label>
-          <textarea
-            id="diary-content"
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            placeholder="今天想记录的事..."
-            rows={14}
-            disabled={!user}
+          <label htmlFor="diary-rich-editor">内容</label>
+          <div className="rich-toolbar" aria-label="日记格式工具栏">
+            <select
+              aria-label="段落格式"
+              defaultValue="div"
+              onChange={(event) => runEditorCommand("formatBlock", event.target.value)}
+              disabled={!user}
+            >
+              <option value="div">正文</option>
+              <option value="h2">标题</option>
+              <option value="h3">小标题</option>
+              <option value="blockquote">引用</option>
+            </select>
+            <select
+              aria-label="字体"
+              defaultValue="Arial"
+              onChange={(event) => runEditorCommand("fontName", event.target.value)}
+              disabled={!user}
+            >
+              <option value="Arial">Arial</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Times New Roman">Times</option>
+              <option value="Courier New">Courier</option>
+            </select>
+            <select
+              aria-label="字号"
+              defaultValue="3"
+              onChange={(event) => runEditorCommand("fontSize", event.target.value)}
+              disabled={!user}
+            >
+              <option value="2">小</option>
+              <option value="3">正常</option>
+              <option value="4">大</option>
+              <option value="5">更大</option>
+            </select>
+            <button type="button" onClick={() => runEditorCommand("bold")} disabled={!user}>
+              B
+            </button>
+            <button type="button" onClick={() => runEditorCommand("italic")} disabled={!user}>
+              I
+            </button>
+            <button type="button" onClick={() => runEditorCommand("underline")} disabled={!user}>
+              U
+            </button>
+            <button type="button" onClick={() => runEditorCommand("strikeThrough")} disabled={!user}>
+              S
+            </button>
+            <button type="button" onClick={() => transformSelection((value) => value.toUpperCase())} disabled={!user}>
+              AA
+            </button>
+            <button type="button" onClick={() => transformSelection((value) => value.toLowerCase())} disabled={!user}>
+              aa
+            </button>
+            <button type="button" onClick={() => runEditorCommand("insertUnorderedList")} disabled={!user}>
+              • List
+            </button>
+            <button type="button" onClick={() => runEditorCommand("insertOrderedList")} disabled={!user}>
+              1. List
+            </button>
+            <button type="button" onClick={() => runEditorCommand("justifyLeft")} disabled={!user}>
+              左
+            </button>
+            <button type="button" onClick={() => runEditorCommand("justifyCenter")} disabled={!user}>
+              中
+            </button>
+            <button type="button" onClick={() => runEditorCommand("insertHorizontalRule")} disabled={!user}>
+              横线
+            </button>
+            <button type="button" onClick={() => runEditorCommand("removeFormat")} disabled={!user}>
+              清格式
+            </button>
+          </div>
+          <div
+            className="rich-editor"
+            contentEditable={Boolean(user)}
+            id="diary-rich-editor"
+            onInput={syncEditorContent}
+            ref={editorRef}
+            role="textbox"
+            aria-multiline="true"
+            data-placeholder="今天想记录的事..."
+            suppressContentEditableWarning
           />
           <button className="button primary" type="button" onClick={saveDiary} disabled={!user || isSaving}>
             {isSaving ? "保存中..." : "保存这一天的日记"}
