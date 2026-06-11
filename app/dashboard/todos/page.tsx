@@ -477,23 +477,38 @@ export default function TodosPage() {
   return (
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
-        <div className="todos-hero-copy">
-          <p className="eyebrow">Today</p>
-          <p className="version-marker">版本标记：GOAL-HERO</p>
-          <h1>待办和计时</h1>
-          {isLoading ? <p>正在读取登录状态...</p> : null}
-          {!isLoading && !user ? (
-            <>
-              <p>登录后，这里的待办事项和计时记录会保存到你的账号里。</p>
-              <a className="button primary" href="/login">
-                去登录
-              </a>
-            </>
-          ) : null}
-          {user ? <p>已登录：{user.email}</p> : null}
-        </div>
+        <p className="eyebrow">Today</p>
+        <p className="version-marker">版本标记：GOAL-LEFT</p>
+        <h1>待办和计时</h1>
+        {isLoading ? <p>正在读取登录状态...</p> : null}
+        {!isLoading && !user ? (
+          <>
+            <p>登录后，这里的待办事项和计时记录会保存到你的账号里。</p>
+            <a className="button primary" href="/login">
+              去登录
+            </a>
+          </>
+        ) : null}
+        {user ? <p>已登录：{user.email}</p> : null}
+      </section>
 
-        <aside className="goal-hero-panel">
+      <section className="stats-grid">
+        <article className="stat-card">
+          <span>今日总计时</span>
+          <strong>{formatMinutes(totalMinutes)}</strong>
+        </article>
+        <article className="stat-card">
+          <span>已完成</span>
+          <strong>{completedTodos.length}</strong>
+        </article>
+        <article className="stat-card">
+          <span>未完成</span>
+          <strong>{incompleteTodos.length}</strong>
+        </article>
+      </section>
+
+      <section className="goal-task-layout">
+        <aside className="editor-panel goal-column">
           <div className="panel-heading-row">
             <div>
               <p className="eyebrow">Goals</p>
@@ -560,24 +575,7 @@ export default function TodosPage() {
             })}
           </div>
         </aside>
-      </section>
 
-      <section className="stats-grid">
-        <article className="stat-card">
-          <span>今日总计时</span>
-          <strong>{formatMinutes(totalMinutes)}</strong>
-        </article>
-        <article className="stat-card">
-          <span>已完成</span>
-          <strong>{completedTodos.length}</strong>
-        </article>
-        <article className="stat-card">
-          <span>未完成</span>
-          <strong>{incompleteTodos.length}</strong>
-        </article>
-      </section>
-
-      <section className="goal-task-layout">
         <div className="short-task-column">
           <section className="editor-panel quick-add-panel">
             <div className="panel-heading-row">

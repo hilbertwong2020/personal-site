@@ -321,20 +321,7 @@ h3 {
 }
 
 .todos-page .dashboard-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
-  gap: 24px;
-  align-items: start;
   padding: 28px 32px;
-}
-
-.todos-hero-copy {
-  min-width: 0;
-}
-
-.goal-hero-panel {
-  display: grid;
-  gap: 12px;
 }
 
 .todos-page .editor-panel h2,
@@ -600,12 +587,13 @@ h3 {
 
 .goal-task-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  grid-template-columns: minmax(300px, 350px) minmax(0, 1fr) minmax(220px, 280px);
   gap: 22px;
   margin-top: 28px;
   align-items: start;
 }
 
+.goal-column,
 .today-side-list {
   position: sticky;
   top: 92px;
