@@ -11,18 +11,57 @@ type DiaryEntry = {
   entry_date: string;
 };
 
+type SpeechRecognitionResultItem = {
+  transcript: string;
+};
+
+type SpeechRecognitionResult = {
+  isFinal: boolean;
+  [index: number]: SpeechRecognitionResultItem;
+};
+
+type SpeechRecognitionEvent = {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: SpeechRecognitionResult;
+  };
+};
+
+type SpeechRecognitionInstance = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onend: (() => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
+
+type SpeechWindow = Window &
+  typeof globalThis & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
 export default function DiaryPage() {
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [entry, setEntry] = useState<DiaryEntry | null>(null);
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [selectedDate, setSelectedDate] = useState(todayIsoDate());
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [speechLanguage, setSpeechLanguage] = useState("zh-CN");
+  const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -83,6 +122,13 @@ export default function DiaryPage() {
     }
   }, [entry?.id, selectedDate]);
 
+  useEffect(
+    () => () => {
+      recognitionRef.current?.stop();
+    },
+    [],
+  );
+
   function syncEditorContent() {
     setContent(editorRef.current?.innerHTML ?? "");
   }
@@ -117,6 +163,68 @@ export default function DiaryPage() {
 
     document.execCommand("insertText", false, transform(text));
     syncEditorContent();
+  }
+
+  function insertSpeechText(value: string) {
+    editorRef.current?.focus();
+    document.execCommand("insertText", false, value);
+    syncEditorContent();
+  }
+
+  function toggleSpeechInput() {
+    if (!user) {
+      setMessage("请先登录。");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const speechWindow = window as SpeechWindow;
+    const SpeechRecognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setMessage("这个浏览器暂不支持语音输入。请用 Chrome 或 Edge 试试。");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = speechLanguage;
+
+    recognition.onresult = (event) => {
+      let finalText = "";
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const result = event.results[index];
+
+        if (result.isFinal) {
+          finalText += result[0].transcript;
+        }
+      }
+
+      if (finalText) {
+        insertSpeechText(`${finalText.trim()} `);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      setMessage(`语音输入停止：${event.error}`);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+    setMessage("语音输入已开始。浏览器可能会要求麦克风权限。");
   }
 
   async function saveDiary() {
@@ -193,7 +301,7 @@ export default function DiaryPage() {
           <a className="mini-button" href="/dashboard/todos">
             待办和计时
           </a>
-          <p className="version-marker">版本标记：RICH-DIARY</p>
+          <p className="version-marker">版本标记：VOICE-DIARY</p>
         </div>
         <h1>私密日记</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -281,6 +389,23 @@ export default function DiaryPage() {
               <option value="4">大</option>
               <option value="5">更大</option>
             </select>
+            <select
+              aria-label="语音输入语言"
+              value={speechLanguage}
+              onChange={(event) => setSpeechLanguage(event.target.value)}
+              disabled={!user || isListening}
+            >
+              <option value="zh-CN">普通话</option>
+              <option value="en-US">English</option>
+            </select>
+            <button
+              className={isListening ? "voice-button listening" : "voice-button"}
+              type="button"
+              onClick={toggleSpeechInput}
+              disabled={!user}
+            >
+              {isListening ? "停止语音输入" : "🎙 开始语音输入"}
+            </button>
             <button type="button" onClick={() => runEditorCommand("bold")} disabled={!user}>
               B
             </button>

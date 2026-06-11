@@ -866,6 +866,18 @@ h3 {
   color: var(--accent);
 }
 
+.rich-toolbar .voice-button {
+  border-color: rgba(46, 111, 94, 0.34);
+  background: rgba(46, 111, 94, 0.1);
+  color: var(--accent-dark);
+}
+
+.rich-toolbar .voice-button.listening {
+  border-color: rgba(171, 48, 48, 0.55);
+  background: rgba(171, 48, 48, 0.12);
+  color: #8f2424;
+}
+
 .rich-editor {
   min-height: 360px;
   border: 1px solid var(--line);
