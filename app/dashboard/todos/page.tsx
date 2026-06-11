@@ -125,12 +125,9 @@ export default function TodosPage() {
   const [newTodo, setNewTodo] = useState("");
   const [category, setCategory] = useState("学习");
   const [subcategory, setSubcategory] = useState("编程");
-  const [categoryOptions, setCategoryOptions] = useState(defaultCategories);
-  const [subcategoryOptions, setSubcategoryOptions] = useState(defaultSubcategories);
   const [estimatedMinutes, setEstimatedMinutes] = useState("25");
   const [goalId, setGoalId] = useState("");
   const [notes, setNotes] = useState("");
-  const [manualMinutesByTodoId, setManualMinutesByTodoId] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -363,34 +360,6 @@ export default function TodosPage() {
     setMessage("待办已添加。");
   }
 
-  function addCategoryOption() {
-    const nextCategory = category.trim();
-
-    if (!nextCategory) {
-      setMessage("先输入一个大类名称。");
-      return;
-    }
-
-    setCategoryOptions((currentOptions) =>
-      currentOptions.includes(nextCategory) ? currentOptions : [...currentOptions, nextCategory],
-    );
-    setMessage(`已加入大类候选：${nextCategory}`);
-  }
-
-  function addSubcategoryOption() {
-    const nextSubcategory = subcategory.trim();
-
-    if (!nextSubcategory) {
-      setMessage("先输入一个小类名称。");
-      return;
-    }
-
-    setSubcategoryOptions((currentOptions) =>
-      currentOptions.includes(nextSubcategory) ? currentOptions : [...currentOptions, nextSubcategory],
-    );
-    setMessage(`已加入小类候选：${nextSubcategory}`);
-  }
-
   async function toggleTodo(todo: Todo) {
     if (!user) {
       setMessage("请先登录。");
@@ -566,48 +535,6 @@ export default function TodosPage() {
     setMessage("待办已删除。");
   }
 
-  async function addManualSession(todo: Todo) {
-    if (!user) {
-      setMessage("请先登录。");
-      return;
-    }
-
-    const minutes = Number(manualMinutesByTodoId[todo.id] ?? "");
-
-    if (!Number.isFinite(minutes) || minutes <= 0) {
-      setMessage("请输入要补记的分钟数。");
-      return;
-    }
-
-    const endedAt = new Date();
-    const startedAt = new Date(endedAt.getTime() - minutes * 60 * 1000);
-    const durationSeconds = Math.round(minutes * 60);
-
-    const { data, error } = await supabase
-      .from("task_time_sessions")
-      .insert({
-        owner_id: user.id,
-        todo_id: todo.id,
-        goal_id: todo.goal_id,
-        started_at: startedAt.toISOString(),
-        ended_at: endedAt.toISOString(),
-        duration_seconds: durationSeconds,
-        note: "manual entry",
-      })
-      .select("id,todo_id,goal_id,started_at,ended_at,duration_seconds")
-      .single();
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    setSessions((currentSessions) => [data as TimeSession, ...currentSessions]);
-    setAllSessions((currentSessions) => [data as TimeSession, ...currentSessions]);
-    setManualMinutesByTodoId((currentValues) => ({ ...currentValues, [todo.id]: "" }));
-    setMessage(`已为「${todo.title}」补记 ${minutes} 分钟。`);
-  }
-
   async function saveReview() {
     if (!user) {
       setMessage("请先登录。");
@@ -642,7 +569,7 @@ export default function TodosPage() {
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
         <p className="eyebrow">Today</p>
-        <p className="version-marker">版本标记：MANUAL-TIME</p>
+        <p className="version-marker">版本标记：GHOST-FIX</p>
         <h1>待办和计时</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
         {!isLoading && !user ? (
@@ -654,10 +581,6 @@ export default function TodosPage() {
           </>
         ) : null}
         {user ? <p>已登录：{user.email}</p> : null}
-        <p className="version-history">
-          上一版：GHOST-FIX ·
-          <a href="https://github.com/hilbertwong2020/personal-site/commit/6dbffd7">查看上一版改动</a>
-        </p>
       </section>
 
       <section className="stats-grid">
@@ -763,32 +686,22 @@ export default function TodosPage() {
                 placeholder="任务标题"
                 disabled={!user}
               />
-              <div className="option-combo">
-                <input
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                  list="category-options"
-                  aria-label="大类"
-                  placeholder="大类"
-                  disabled={!user}
-                />
-                <button className="mini-button tiny-button" type="button" onClick={addCategoryOption} disabled={!user}>
-                  +大类
-                </button>
-              </div>
-              <div className="option-combo">
-                <input
-                  value={subcategory}
-                  onChange={(event) => setSubcategory(event.target.value)}
-                  list="subcategory-options"
-                  aria-label="小类"
-                  placeholder="小类"
-                  disabled={!user}
-                />
-                <button className="mini-button tiny-button" type="button" onClick={addSubcategoryOption} disabled={!user}>
-                  +小类
-                </button>
-              </div>
+              <input
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                list="category-options"
+                aria-label="大类"
+                placeholder="大类"
+                disabled={!user}
+              />
+              <input
+                value={subcategory}
+                onChange={(event) => setSubcategory(event.target.value)}
+                list="subcategory-options"
+                aria-label="小类"
+                placeholder="小类"
+                disabled={!user}
+              />
               <select value={goalId} onChange={(event) => setGoalId(event.target.value)} disabled={!user}>
                 <option value="">无长期目标</option>
                 {goals.map((goal) => (
@@ -844,12 +757,12 @@ export default function TodosPage() {
               </div>
             ) : null}
             <datalist id="category-options">
-              {categoryOptions.map((item) => (
+              {defaultCategories.map((item) => (
                 <option value={item} key={item} />
               ))}
             </datalist>
             <datalist id="subcategory-options">
-              {subcategoryOptions.map((item) => (
+              {defaultSubcategories.map((item) => (
                 <option value={item} key={item} />
               ))}
             </datalist>
@@ -962,30 +875,6 @@ export default function TodosPage() {
                         </button>
                       </div>
                     </div>
-                    <div className="manual-time-row">
-                      <input
-                        type="number"
-                        min="1"
-                        value={manualMinutesByTodoId[todo.id] ?? ""}
-                        onChange={(event) =>
-                          setManualMinutesByTodoId((currentValues) => ({
-                            ...currentValues,
-                            [todo.id]: event.target.value,
-                          }))
-                        }
-                        placeholder="补记分钟"
-                        aria-label={`为 ${todo.title} 补记分钟`}
-                        disabled={!user}
-                      />
-                      <button
-                        className="button secondary compact-action"
-                        type="button"
-                        onClick={() => addManualSession(todo)}
-                        disabled={!user}
-                      >
-                        补记
-                      </button>
-                    </div>
                   </article>
                 );
               })}
@@ -999,6 +888,7 @@ export default function TodosPage() {
               <p className="eyebrow">Today side</p>
               <h2>今日列表</h2>
             </div>
+            <span className="list-count">SIDE-LIST</span>
           </div>
           <div className="side-task-list">
             {todos.length === 0 ? <p className="timer-status">还没有任务。</p> : null}

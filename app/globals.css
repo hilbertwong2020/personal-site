@@ -326,11 +326,7 @@ h3 {
 
 .todos-page .editor-panel h2,
 .todos-page .card h2 {
-  font-size: clamp(20px, 2.2vw, 28px);
-}
-
-.todos-page .dashboard-hero h1 {
-  font-size: clamp(34px, 4.5vw, 50px);
+  font-size: clamp(24px, 3vw, 34px);
 }
 
 .post-page {
@@ -444,17 +440,6 @@ h3 {
   background: rgba(46, 111, 94, 0.1);
   color: var(--accent);
   font-size: 13px;
-  font-weight: 800;
-}
-
-.version-history {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.version-history a {
-  color: var(--accent);
   font-weight: 800;
 }
 
@@ -716,21 +701,9 @@ h3 {
 
 .quick-add-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(128px, 0.75fr) minmax(128px, 0.75fr) minmax(130px, 0.75fr) 82px auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(90px, 0.55fr) minmax(90px, 0.55fr) minmax(130px, 0.75fr) 82px auto;
   gap: 10px;
   align-items: center;
-}
-
-.option-combo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px;
-}
-
-.tiny-button {
-  min-height: 44px;
-  padding: 0 8px;
-  font-size: 12px;
 }
 
 .todo-card-main,
@@ -852,20 +825,10 @@ h3 {
 .task-focus-list .todo-item span {
   min-width: 0;
   overflow: hidden;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.manual-time-row {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.manual-time-row input {
-  max-width: 132px;
 }
 
 .task-focus-list .todo-item input {
@@ -877,8 +840,7 @@ h3 {
 }
 
 .today-side-list h2 {
-  font-size: 20px;
-  line-height: 1.1;
+  font-size: 24px;
 }
 
 .side-task-list {
@@ -895,8 +857,7 @@ h3 {
   border-radius: 8px;
   background: white;
   padding: 9px 10px;
-  font-size: 14px;
-  font-weight: 750;
+  font-weight: 800;
 }
 
 .side-task-item input {
