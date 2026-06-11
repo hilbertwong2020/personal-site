@@ -9,6 +9,7 @@ type Goal = {
   title: string;
   description: string | null;
   target_date: string | null;
+  created_at: string;
 };
 
 type Todo = {
@@ -84,6 +85,22 @@ function sessionMinutes(session: TimeSession) {
   return Math.round(sessionSeconds(session) / 60);
 }
 
+function goalDateProgress(goal: Goal) {
+  if (!goal.target_date) {
+    return null;
+  }
+
+  const createdAt = new Date(goal.created_at).getTime();
+  const targetAt = new Date(`${goal.target_date}T23:59:59`).getTime();
+  const now = Date.now();
+
+  if (!Number.isFinite(createdAt) || !Number.isFinite(targetAt) || targetAt <= createdAt) {
+    return 100;
+  }
+
+  return Math.min(100, Math.max(0, Math.round(((now - createdAt) / (targetAt - createdAt)) * 100)));
+}
+
 function sumBy<T>(items: T[], getKey: (item: T) => string, getMinutes: (item: T) => number) {
   return items.reduce<Record<string, number>>((totals, item) => {
     const key = getKey(item) || "未分类";
@@ -97,6 +114,7 @@ export default function TodosPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [sessions, setSessions] = useState<TimeSession[]>([]);
+  const [allSessions, setAllSessions] = useState<TimeSession[]>([]);
   const [review, setReview] = useState<DailyReview | null>(null);
   const [reviewText, setReviewText] = useState("");
   const [showAddGoal, setShowAddGoal] = useState(false);
@@ -164,6 +182,14 @@ export default function TodosPage() {
     (session) => goalById[session.goal_id ?? todoById[session.todo_id]?.goal_id ?? ""]?.title ?? "无长期目标",
     sessionMinutes,
   );
+  const totalMinutesByGoalId = allSessions.reduce<Record<string, number>>((totals, session) => {
+    if (!session.goal_id) {
+      return totals;
+    }
+
+    totals[session.goal_id] = (totals[session.goal_id] ?? 0) + sessionMinutes(session);
+    return totals;
+  }, {});
   const completedTodos = todos.filter((todo) => todo.completed);
   const incompleteTodos = todos.filter((todo) => !todo.completed);
   const timeGapTodos = todos.filter((todo) => {
@@ -180,10 +206,10 @@ export default function TodosPage() {
       setUser(currentUser);
 
       if (currentUser) {
-        const [goalsResult, todosResult, sessionsResult, reviewResult] = await Promise.all([
+        const [goalsResult, todosResult, sessionsResult, allSessionsResult, reviewResult] = await Promise.all([
           supabase
             .from("goals")
-            .select("id,title,description,target_date")
+            .select("id,title,description,target_date,created_at")
             .eq("owner_id", currentUser.id)
             .eq("status", "active")
             .order("created_at", { ascending: false }),
@@ -201,6 +227,11 @@ export default function TodosPage() {
             .lt("started_at", `${today}T23:59:59`)
             .order("started_at", { ascending: false }),
           supabase
+            .from("task_time_sessions")
+            .select("id,todo_id,goal_id,started_at,ended_at,duration_seconds")
+            .eq("owner_id", currentUser.id)
+            .order("started_at", { ascending: false }),
+          supabase
             .from("daily_reviews")
             .select("id,reflection,ai_summary,ai_suggestions,ai_tags")
             .eq("owner_id", currentUser.id)
@@ -208,7 +239,8 @@ export default function TodosPage() {
             .maybeSingle(),
         ]);
 
-        const firstError = goalsResult.error ?? todosResult.error ?? sessionsResult.error ?? reviewResult.error;
+        const firstError =
+          goalsResult.error ?? todosResult.error ?? sessionsResult.error ?? allSessionsResult.error ?? reviewResult.error;
 
         if (firstError) {
           setMessage(firstError.message);
@@ -216,6 +248,7 @@ export default function TodosPage() {
           setGoals((goalsResult.data ?? []) as Goal[]);
           setTodos((todosResult.data ?? []) as Todo[]);
           setSessions((sessionsResult.data ?? []) as TimeSession[]);
+          setAllSessions((allSessionsResult.data ?? []) as TimeSession[]);
           setReview((reviewResult.data as DailyReview | null) ?? null);
           setReviewText(reviewResult.data?.reflection ?? "");
         }
@@ -260,7 +293,7 @@ export default function TodosPage() {
         description: newGoalDescription.trim() || null,
         target_date: newGoalTargetDate || null,
       })
-      .select("id,title,description,target_date")
+      .select("id,title,description,target_date,created_at")
       .single();
 
     if (error) {
@@ -370,6 +403,7 @@ export default function TodosPage() {
     }
 
     setSessions((currentSessions) => [data as TimeSession, ...currentSessions]);
+    setAllSessions((currentSessions) => [data as TimeSession, ...currentSessions]);
     setMessage("计时已开始。");
   }
 
@@ -402,6 +436,9 @@ export default function TodosPage() {
     }
 
     setSessions((currentSessions) =>
+      currentSessions.map((session) => (session.id === activeSession.id ? (data as TimeSession) : session)),
+    );
+    setAllSessions((currentSessions) =>
       currentSessions.map((session) => (session.id === activeSession.id ? (data as TimeSession) : session)),
     );
     setMessage("计时已停止。");
@@ -516,14 +553,26 @@ export default function TodosPage() {
           {message ? <p className="auth-message">{message}</p> : null}
           <div className="goal-list">
             {goals.length === 0 ? <p className="timer-status">还没有长期目标。</p> : null}
-            {goals.map((goal) => (
-              <article className="goal-card" key={goal.id}>
-                <strong>{goal.title}</strong>
-                {goal.description ? <span>{goal.description}</span> : null}
-                <span>{goal.target_date ? `目标日期：${goal.target_date}` : "没有目标日期"}</span>
-                <span>今日投入：{formatMinutes(minutesByGoal[goal.title] ?? 0)}</span>
-              </article>
-            ))}
+            {goals.map((goal) => {
+              const progress = goalDateProgress(goal);
+
+              return (
+                <article className="goal-card" key={goal.id}>
+                  <strong>{goal.title}</strong>
+                  {goal.description ? <span>{goal.description}</span> : null}
+                  <span>{goal.target_date ? `目标日期：${goal.target_date}` : "没有目标日期"}</span>
+                  <div className="goal-time-row">
+                    <span>总投入：{formatMinutes(totalMinutesByGoalId[goal.id] ?? 0)}</span>
+                    <span>今日投入：{formatMinutes(minutesByGoal[goal.title] ?? 0)}</span>
+                  </div>
+                  {progress !== null ? (
+                    <div className="goal-progress-track" aria-label="目标时间进度">
+                      <div className="goal-progress-fill" style={{ width: `${progress}%` }} />
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         </aside>
 
