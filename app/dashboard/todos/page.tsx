@@ -569,7 +569,7 @@ export default function TodosPage() {
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
         <p className="eyebrow">Today</p>
-        <p className="version-marker">版本标记：GHOST-FIX</p>
+        <p className="version-marker">版本标记：SELECT-FIX</p>
         <h1>待办和计时</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
         {!isLoading && !user ? (
@@ -686,22 +686,25 @@ export default function TodosPage() {
                 placeholder="任务标题"
                 disabled={!user}
               />
-              <input
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
-                list="category-options"
-                aria-label="大类"
-                placeholder="大类"
-                disabled={!user}
-              />
-              <input
+              <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="大类" disabled={!user}>
+                {defaultCategories.map((item) => (
+                  <option value={item} key={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              <select
                 value={subcategory}
                 onChange={(event) => setSubcategory(event.target.value)}
-                list="subcategory-options"
                 aria-label="小类"
-                placeholder="小类"
                 disabled={!user}
-              />
+              >
+                {defaultSubcategories.map((item) => (
+                  <option value={item} key={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
               <select value={goalId} onChange={(event) => setGoalId(event.target.value)} disabled={!user}>
                 <option value="">无长期目标</option>
                 {goals.map((goal) => (
@@ -883,12 +886,8 @@ export default function TodosPage() {
         </div>
 
         <aside className="editor-panel today-side-list">
-          <div className="panel-heading-row">
-            <div>
-              <p className="eyebrow">Today side</p>
-              <h2>今日列表</h2>
-            </div>
-            <span className="list-count">SIDE-LIST</span>
+          <div className="panel-heading-row side-heading-row">
+            <h2>今日列表</h2>
           </div>
           <div className="side-task-list">
             {todos.length === 0 ? <p className="timer-status">还没有任务。</p> : null}
