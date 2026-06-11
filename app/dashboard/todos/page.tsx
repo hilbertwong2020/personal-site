@@ -785,12 +785,18 @@ export default function TodosPage() {
   }
 
   function applyStoppedSession(stoppedSession: TimeSession) {
-    setSessions((currentSessions) =>
-      currentSessions.map((session) => (session.id === stoppedSession.id ? stoppedSession : session)),
-    );
-    setAllSessions((currentSessions) =>
-      currentSessions.map((session) => (session.id === stoppedSession.id ? stoppedSession : session)),
-    );
+    const upsertSession = (currentSessions: TimeSession[]) => {
+      const hasSession = currentSessions.some((session) => session.id === stoppedSession.id);
+
+      if (!hasSession) {
+        return [stoppedSession, ...currentSessions];
+      }
+
+      return currentSessions.map((session) => (session.id === stoppedSession.id ? stoppedSession : session));
+    };
+
+    setSessions(upsertSession);
+    setAllSessions(upsertSession);
   }
 
   function removeSessions(sessionIds: string[]) {
@@ -903,7 +909,7 @@ export default function TodosPage() {
             <a className="mini-button" href="/">
               回到主页
             </a>
-            <p className="version-marker">版本标记：DAY-HIDE</p>
+            <p className="version-marker">版本标记：CAL-FIX</p>
           </div>
           <h1>待办和计时</h1>
           {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -1478,7 +1484,7 @@ function WeekCalendar({
               const clippedStart = Math.max(dayStart, block.startMinutes);
               const clippedEnd = Math.min(endHour * 60, block.endMinutes);
               const top = ((clippedStart - dayStart) / dayMinutes) * 100;
-              const height = Math.max(18, ((clippedEnd - clippedStart) / dayMinutes) * 100);
+              const height = Math.max(0.7, ((clippedEnd - clippedStart) / dayMinutes) * 100);
 
               return (
                 <article

@@ -544,6 +544,7 @@ h3 {
   padding: 4px 6px;
   font-size: 10px;
   line-height: 1.2;
+  min-height: 18px;
 }
 
 .calendar-event strong,
