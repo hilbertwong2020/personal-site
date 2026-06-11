@@ -1100,8 +1100,8 @@ h3 {
 }
 
 .task-focus-list .todo-item {
-  display: flex;
-  width: 100%;
+  display: inline-flex;
+  width: auto;
   max-width: 100%;
   min-width: 0;
   align-items: center;
@@ -1111,7 +1111,7 @@ h3 {
 }
 
 .task-focus-list .todo-item span {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
   overflow: visible;
@@ -1119,7 +1119,7 @@ h3 {
   font-weight: 800;
   line-height: 1.25;
   text-overflow: clip;
-  white-space: normal;
+  white-space: nowrap;
   word-break: break-word;
 }
 
