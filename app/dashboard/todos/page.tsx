@@ -513,6 +513,10 @@ export default function TodosPage() {
     event.target.value = "";
   }
 
+  function requestGoogleCalendarConnect() {
+    setMessage("下一步会接 Google 登录和 Calendar 只读授权；现在不会再要求手动上传文件。");
+  }
+
   useEffect(() => {
     if (!sessions.some((session) => !session.ended_at)) {
       return;
@@ -859,7 +863,7 @@ export default function TodosPage() {
       <section className="dashboard-hero">
         <div className="todos-hero-copy">
           <p className="eyebrow">Today</p>
-          <p className="version-marker">版本标记：TASK-CARD-RESTORE</p>
+          <p className="version-marker">版本标记：TITLE-GOOGLE-FIX</p>
           <h1>待办和计时</h1>
           {isLoading ? <p>正在读取登录状态...</p> : null}
           {!isLoading && !user ? (
@@ -919,6 +923,7 @@ export default function TodosPage() {
           importedCount={importedCalendarBlocks.length}
           isExpanded={false}
           onChooseDate={chooseCalendarDate}
+          onConnectGoogle={requestGoogleCalendarConnect}
           onExpand={() => setIsWeekExpanded(true)}
           onImport={importGoogleCalendarFile}
           selectedDate={today}
@@ -933,6 +938,7 @@ export default function TodosPage() {
             importedCount={importedCalendarBlocks.length}
             isExpanded
             onChooseDate={chooseCalendarDate}
+            onConnectGoogle={requestGoogleCalendarConnect}
             onClose={() => setIsWeekExpanded(false)}
             onImport={importGoogleCalendarFile}
             selectedDate={today}
@@ -1337,6 +1343,7 @@ function WeekCalendar({
   importedCount,
   isExpanded,
   onChooseDate,
+  onConnectGoogle,
   onClose,
   onExpand,
   onImport,
@@ -1347,6 +1354,7 @@ function WeekCalendar({
   importedCount: number;
   isExpanded: boolean;
   onChooseDate: (date: string) => void;
+  onConnectGoogle: () => void;
   onClose?: () => void;
   onExpand?: () => void;
   onImport: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -1367,9 +1375,12 @@ function WeekCalendar({
         </div>
         <div className="week-header-actions">
           <label className="mini-button import-button" htmlFor={inputId}>
-            导入 Google Calendar
+            导入 .ics
             <input id={inputId} type="file" accept=".ics,text/calendar" onChange={onImport} />
           </label>
+          <button className="mini-button" type="button" onClick={onConnectGoogle}>
+            连接 Google
+          </button>
           {isExpanded ? (
             <button className="mini-button" type="button" onClick={onClose}>
               关闭
