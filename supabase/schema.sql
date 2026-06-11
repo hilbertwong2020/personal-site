@@ -138,6 +138,15 @@ create table public.task_time_sessions (
   created_at timestamptz not null default now()
 );
 
+create table public.todo_hidden_dates (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  todo_id uuid not null references public.todos(id) on delete cascade,
+  hidden_on date not null,
+  created_at timestamptz not null default now(),
+  unique (owner_id, todo_id, hidden_on)
+);
+
 create table public.diary_entries (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references public.profiles(id) on delete cascade,
@@ -209,6 +218,7 @@ alter table public.todos enable row level security;
 alter table public.goals enable row level security;
 alter table public.timer_sessions enable row level security;
 alter table public.task_time_sessions enable row level security;
+alter table public.todo_hidden_dates enable row level security;
 alter table public.diary_entries enable row level security;
 alter table public.files enable row level security;
 alter table public.daily_reviews enable row level security;
@@ -216,6 +226,7 @@ alter table public.daily_reviews enable row level security;
 grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on public.goals to authenticated;
 grant select, insert, update, delete on public.task_time_sessions to authenticated;
+grant select, insert, update, delete on public.todo_hidden_dates to authenticated;
 grant select, insert, update, delete on public.daily_reviews to authenticated;
 grant select, insert, update, delete on public.todos to authenticated;
 
@@ -336,6 +347,12 @@ with check (owner_id = auth.uid());
 
 create policy "users can manage their task time sessions"
 on public.task_time_sessions for all
+to authenticated
+using (owner_id = auth.uid())
+with check (owner_id = auth.uid());
+
+create policy "users can manage their hidden todo dates"
+on public.todo_hidden_dates for all
 to authenticated
 using (owner_id = auth.uid())
 with check (owner_id = auth.uid());

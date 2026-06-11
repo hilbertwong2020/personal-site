@@ -43,6 +43,10 @@ type DailyReview = {
   ai_tags: string[];
 };
 
+type HiddenTodoDate = {
+  todo_id: string;
+};
+
 type WeekBlock = {
   id: string;
   day: string;
@@ -426,7 +430,15 @@ export default function TodosPage() {
       if (currentUser) {
         const selectedDayBounds = dayBounds(today);
         const todoDateFilter = today === realToday ? `due_on.is.null,due_on.eq.${today}` : `due_on.eq.${today}`;
-        const [goalsResult, todosResult, allTodosResult, sessionsResult, allSessionsResult, reviewResult] = await Promise.all([
+        const [
+          goalsResult,
+          todosResult,
+          allTodosResult,
+          hiddenTodosResult,
+          sessionsResult,
+          allSessionsResult,
+          reviewResult,
+        ] = await Promise.all([
           supabase
             .from("goals")
             .select("id,title,description,target_date,created_at")
@@ -443,6 +455,11 @@ export default function TodosPage() {
             .from("todos")
             .select("id,title,completed,category,subcategory,estimated_minutes,goal_id,notes,ai_tags,created_at")
             .eq("owner_id", currentUser.id),
+          supabase
+            .from("todo_hidden_dates")
+            .select("todo_id")
+            .eq("owner_id", currentUser.id)
+            .eq("hidden_on", today),
           supabase
             .from("task_time_sessions")
             .select("id,todo_id,goal_id,started_at,ended_at,duration_seconds")
@@ -475,7 +492,12 @@ export default function TodosPage() {
           setMessage(firstError.message);
         } else {
           setGoals((goalsResult.data ?? []) as Goal[]);
-          setTodos((todosResult.data ?? []) as Todo[]);
+          if (hiddenTodosResult.error) {
+            setMessage(`需要先运行隐藏待办迁移：${hiddenTodosResult.error.message}`);
+          }
+
+          const hiddenTodoIds = new Set(((hiddenTodosResult.data ?? []) as HiddenTodoDate[]).map((item) => item.todo_id));
+          setTodos(((todosResult.data ?? []) as Todo[]).filter((todo) => !hiddenTodoIds.has(todo.id)));
           setAllTodos((allTodosResult.data ?? []) as Todo[]);
           setSessions((sessionsResult.data ?? []) as TimeSession[]);
           setAllSessions((allSessionsResult.data ?? []) as TimeSession[]);
@@ -808,13 +830,30 @@ export default function TodosPage() {
       return;
     }
 
-    const shouldDelete = window.confirm("确定删除这个待办吗？这个任务的计时记录也会一起删除。");
+    const shouldHide = window.confirm("从这一天的列表移除这个待办吗？历史计时记录会保留。");
 
-    if (!shouldDelete) {
+    if (!shouldHide) {
       return;
     }
 
-    const { error } = await supabase.from("todos").delete().eq("id", todo.id);
+    const activeSession = activeSessionByTodoId[todo.id];
+
+    if (activeSession) {
+      const stoppedSession = await stopActiveSession(activeSession);
+
+      if (stoppedSession) {
+        applyStoppedSession(stoppedSession);
+      }
+    }
+
+    const { error } = await supabase.from("todo_hidden_dates").upsert(
+      {
+        owner_id: user.id,
+        todo_id: todo.id,
+        hidden_on: today,
+      },
+      { onConflict: "owner_id,todo_id,hidden_on" },
+    );
 
     if (error) {
       setMessage(error.message);
@@ -822,10 +861,7 @@ export default function TodosPage() {
     }
 
     setTodos((currentTodos) => currentTodos.filter((currentTodo) => currentTodo.id !== todo.id));
-    setAllTodos((currentTodos) => currentTodos.filter((currentTodo) => currentTodo.id !== todo.id));
-    setSessions((currentSessions) => currentSessions.filter((session) => session.todo_id !== todo.id));
-    setAllSessions((currentSessions) => currentSessions.filter((session) => session.todo_id !== todo.id));
-    setMessage("待办已删除。");
+    setMessage("已从这一天移除，历史记录已保留。");
   }
 
   async function saveReview() {
@@ -867,7 +903,7 @@ export default function TodosPage() {
             <a className="mini-button" href="/">
               回到主页
             </a>
-            <p className="version-marker">版本标记：HOME-LINK</p>
+            <p className="version-marker">版本标记：DAY-HIDE</p>
           </div>
           <h1>待办和计时</h1>
           {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -1248,7 +1284,7 @@ export default function TodosPage() {
                           onClick={() => deleteTodo(todo)}
                           disabled={!user}
                         >
-                          删除
+                          移除
                         </button>
                       </div>
                     </div>
