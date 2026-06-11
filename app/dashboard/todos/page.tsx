@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ChangeEvent } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 
@@ -48,6 +49,7 @@ type WeekBlock = {
   title: string;
   startMinutes: number;
   endMinutes: number;
+  source: "todo" | "google";
 };
 
 const defaultCategories = ["学习", "工作", "生活", "研究", "网站开发"];
@@ -125,6 +127,70 @@ function formatTimeRange(startMinutes: number, endMinutes: number) {
   return `${format(startMinutes)} – ${format(endMinutes)}`;
 }
 
+function formatHourLabel(hour: number) {
+  if (hour === 0) {
+    return "12 AM";
+  }
+
+  if (hour === 12) {
+    return "12 PM";
+  }
+
+  return hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
+}
+
+function parseIcsDate(value: string) {
+  const cleanValue = value.trim();
+  const match = cleanValue.match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?)?(Z)?/);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day, hour = "00", minute = "00", second = "00", isUtc] = match;
+
+  if (isUtc) {
+    return new Date(
+      Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)),
+    );
+  }
+
+  return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+}
+
+function cleanIcsText(value: string) {
+  return value.replace(/\\,/g, ",").replace(/\\n/g, " ").replace(/\\/g, "");
+}
+
+function parseGoogleCalendarIcs(text: string): WeekBlock[] {
+  return text
+    .replace(/\r?\n[ \t]/g, "")
+    .split("BEGIN:VEVENT")
+    .slice(1)
+    .map<WeekBlock | null>((eventText, index) => {
+      const summary = eventText.match(/\nSUMMARY(?:;[^:]*)?:(.*)/)?.[1]?.trim() ?? "Google Calendar event";
+      const uid = eventText.match(/\nUID(?:;[^:]*)?:(.*)/)?.[1]?.trim() ?? `google-${index}`;
+      const startText = eventText.match(/\nDTSTART(?:;[^:]*)?:(.*)/)?.[1]?.trim();
+      const endText = eventText.match(/\nDTEND(?:;[^:]*)?:(.*)/)?.[1]?.trim();
+      const start = startText ? parseIcsDate(startText) : null;
+      const end = endText ? parseIcsDate(endText) : null;
+
+      if (!start || !end) {
+        return null;
+      }
+
+      return {
+        id: uid,
+        day: toIsoDate(start),
+        title: cleanIcsText(summary),
+        startMinutes: minutesFromMidnight(start),
+        endMinutes: Math.max(minutesFromMidnight(start) + 1, minutesFromMidnight(end)),
+        source: "google" as const,
+      };
+    })
+    .filter((block): block is WeekBlock => Boolean(block));
+}
+
 function buildWeekBlocks(sessions: TimeSession[], todosById: Record<string, Todo>, selectedDate: string) {
   const dates = weekDates(selectedDate);
   const dateSet = new Set(dates);
@@ -163,6 +229,7 @@ function buildWeekBlocks(sessions: TimeSession[], todosById: Record<string, Todo
       title: todo.title,
       startMinutes: session.startMinutes,
       endMinutes: session.endMinutes,
+      source: "todo",
     });
     return blocks;
   }, []);
@@ -253,6 +320,8 @@ export default function TodosPage() {
   const [message, setMessage] = useState("");
   const [selectedDate, setSelectedDate] = useState(todayIsoDate());
   const [calendarMonth, setCalendarMonth] = useState(() => parseIsoDate(todayIsoDate()));
+  const [importedCalendarBlocks, setImportedCalendarBlocks] = useState<WeekBlock[]>([]);
+  const [isWeekExpanded, setIsWeekExpanded] = useState(false);
   const [, setTick] = useState(0);
 
   const today = selectedDate;
@@ -332,7 +401,14 @@ export default function TodosPage() {
   const incompleteTodos = todos.filter((todo) => !todo.completed);
   const activeSessions = allSessions.filter((session) => !session.ended_at);
   const selectedWeekDates = useMemo(() => weekDates(today), [today]);
-  const weekBlocks = useMemo(() => buildWeekBlocks(allSessions, allTodoById, today), [allSessions, allTodoById, today]);
+  const todoWeekBlocks = useMemo(() => buildWeekBlocks(allSessions, allTodoById, today), [allSessions, allTodoById, today]);
+  const weekBlocks = useMemo(
+    () =>
+      [...todoWeekBlocks, ...importedCalendarBlocks.filter((block) => selectedWeekDates.includes(block.day))].sort(
+        (a, b) => a.day.localeCompare(b.day) || a.startMinutes - b.startMinutes,
+      ),
+    [importedCalendarBlocks, selectedWeekDates, todoWeekBlocks],
+  );
   const timeGapTodos = todos.filter((todo) => {
     const actualMinutes = (sessionsByTodoId[todo.id] ?? []).reduce((total, session) => total + sessionMinutes(session), 0);
     return todo.estimated_minutes !== null && Math.abs(actualMinutes - todo.estimated_minutes) >= 30;
@@ -421,6 +497,20 @@ export default function TodosPage() {
   function chooseCalendarDate(date: string) {
     setSelectedDate(date);
     setCalendarMonth(parseIsoDate(date));
+  }
+
+  async function importGoogleCalendarFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const text = await file.text();
+    const blocks = parseGoogleCalendarIcs(text);
+    setImportedCalendarBlocks(blocks);
+    setMessage(`已导入 ${blocks.length} 个 Google Calendar 事件，只读显示，不会写回 Google Calendar。`);
+    event.target.value = "";
   }
 
   useEffect(() => {
@@ -759,7 +849,7 @@ export default function TodosPage() {
       <section className="dashboard-hero">
         <div className="todos-hero-copy">
           <p className="eyebrow">Today</p>
-          <p className="version-marker">版本标记：WEEK-PLAN</p>
+          <p className="version-marker">版本标记：WEEK-CALENDAR</p>
           <h1>待办和计时</h1>
           {isLoading ? <p>正在读取登录状态...</p> : null}
           {!isLoading && !user ? (
@@ -813,38 +903,32 @@ export default function TodosPage() {
           </div>
         </aside>
 
-        <aside className="week-panel" aria-label="一周计划">
-          <div className="week-header">
-            <strong>一周计划</strong>
-            <span>{today}</span>
-          </div>
-          <div className="week-days">
-            {selectedWeekDates.map((date) => (
-              <div className={date === today ? "week-day selected" : "week-day"} key={date}>
-                <span>{parseIsoDate(date).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}</span>
-                <strong>{parseIsoDate(date).getDate()}</strong>
-              </div>
-            ))}
-          </div>
-          <div className="week-timeline">
-            {["8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM"].map((time) => (
-              <span key={time}>{time}</span>
-            ))}
-          </div>
-          <div className="week-blocks">
-            {weekBlocks.length === 0 ? <p className="timer-status">本周还没有计时记录。</p> : null}
-            {weekBlocks.map((block, index) => (
-              <article className="week-block" key={`${block.day}-${block.id}-${index}`}>
-                <strong>{block.title}</strong>
-                <span>
-                  {parseIsoDate(block.day).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()} ·{" "}
-                  {formatTimeRange(block.startMinutes, block.endMinutes)}
-                </span>
-              </article>
-            ))}
-          </div>
-        </aside>
+        <WeekCalendar
+          blocks={weekBlocks}
+          dates={selectedWeekDates}
+          importedCount={importedCalendarBlocks.length}
+          isExpanded={false}
+          onChooseDate={chooseCalendarDate}
+          onExpand={() => setIsWeekExpanded(true)}
+          onImport={importGoogleCalendarFile}
+          selectedDate={today}
+        />
       </section>
+
+      {isWeekExpanded ? (
+        <div className="week-modal" role="dialog" aria-modal="true" aria-label="全屏一周计划">
+          <WeekCalendar
+            blocks={weekBlocks}
+            dates={selectedWeekDates}
+            importedCount={importedCalendarBlocks.length}
+            isExpanded
+            onChooseDate={chooseCalendarDate}
+            onClose={() => setIsWeekExpanded(false)}
+            onImport={importGoogleCalendarFile}
+            selectedDate={today}
+          />
+        </div>
+      ) : null}
 
       <section className="stats-grid">
         <article className="stat-card">
@@ -1121,6 +1205,7 @@ export default function TodosPage() {
                           onBlur={(event) => updateTodoEstimate(todo, event.target.value)}
                           disabled={!user}
                         />
+                        <span className="estimate-edit-label">分钟</span>
                         {activeSession ? (
                           <button
                             className="button primary compact-action"
@@ -1237,6 +1322,131 @@ export default function TodosPage() {
         <p className="timer-status">AI summary、AI suggestions、AI tags 字段已经预留，暂时不调用任何 AI API。</p>
       </section>
     </main>
+  );
+}
+
+function WeekCalendar({
+  blocks,
+  dates,
+  importedCount,
+  isExpanded,
+  onChooseDate,
+  onClose,
+  onExpand,
+  onImport,
+  selectedDate,
+}: {
+  blocks: WeekBlock[];
+  dates: string[];
+  importedCount: number;
+  isExpanded: boolean;
+  onChooseDate: (date: string) => void;
+  onClose?: () => void;
+  onExpand?: () => void;
+  onImport: (event: ChangeEvent<HTMLInputElement>) => void;
+  selectedDate: string;
+}) {
+  const startHour = 8;
+  const endHour = 22;
+  const dayStart = startHour * 60;
+  const dayMinutes = (endHour - startHour) * 60;
+  const inputId = isExpanded ? "google-calendar-import-full" : "google-calendar-import-mini";
+
+  return (
+    <aside className={isExpanded ? "week-panel week-panel-expanded" : "week-panel"} aria-label="一周计划">
+      <div className="week-header">
+        <div>
+          <strong>一周计划</strong>
+          <span>计时结束后会自动进入这里</span>
+        </div>
+        <div className="week-header-actions">
+          <label className="mini-button import-button" htmlFor={inputId}>
+            导入 Google Calendar
+            <input id={inputId} type="file" accept=".ics,text/calendar" onChange={onImport} />
+          </label>
+          {isExpanded ? (
+            <button className="mini-button" type="button" onClick={onClose}>
+              关闭
+            </button>
+          ) : (
+            <button className="mini-button icon-button" type="button" onClick={onExpand} aria-label="放大一周计划">
+              ↗
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="week-grid-view">
+        <div className="week-grid-head">
+          <span />
+          {dates.map((date) => (
+            <button
+              className={date === selectedDate ? "week-date selected" : "week-date"}
+              type="button"
+              onClick={() => onChooseDate(date)}
+              key={date}
+            >
+              <span>{parseIsoDate(date).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}</span>
+              <strong>{parseIsoDate(date).getDate()}</strong>
+            </button>
+          ))}
+        </div>
+
+        <div className="week-grid-body">
+          <div className="week-time-axis">
+            {Array.from({ length: endHour - startHour + 1 }, (_, index) => (
+              <span key={index}>{formatHourLabel(startHour + index)}</span>
+            ))}
+          </div>
+          <div className="week-days-body">
+            <div className="week-day-columns">
+              {dates.map((date) => (
+                <button
+                  className={date === selectedDate ? "week-day-column selected" : "week-day-column"}
+                  type="button"
+                  aria-label={`查看 ${date}`}
+                  onClick={() => onChooseDate(date)}
+                  key={date}
+                />
+              ))}
+            </div>
+            {blocks.map((block, index) => {
+              const dayIndex = dates.indexOf(block.day);
+
+              if (dayIndex < 0) {
+                return null;
+              }
+
+              const clippedStart = Math.max(dayStart, block.startMinutes);
+              const clippedEnd = Math.min(endHour * 60, block.endMinutes);
+              const top = ((clippedStart - dayStart) / dayMinutes) * 100;
+              const height = Math.max(18, ((clippedEnd - clippedStart) / dayMinutes) * 100);
+
+              return (
+                <article
+                  className={block.source === "google" ? "calendar-event google-event" : "calendar-event todo-event"}
+                  style={{
+                    left: `${(dayIndex / 7) * 100}%`,
+                    top: `${top}%`,
+                    width: `calc(${100 / 7}% - 6px)`,
+                    height: `${height}%`,
+                  }}
+                  key={`${block.source}-${block.day}-${block.id}-${index}`}
+                  title={`${block.title} ${formatTimeRange(block.startMinutes, block.endMinutes)}`}
+                >
+                  <strong>{block.title}</strong>
+                  <span>{formatTimeRange(block.startMinutes, block.endMinutes)}</span>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <p className="calendar-import-note">
+        Google Calendar：已导入 {importedCount} 项，只读显示，不会回写。
+      </p>
+    </aside>
   );
 }
 
