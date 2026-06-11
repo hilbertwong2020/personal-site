@@ -863,7 +863,7 @@ export default function TodosPage() {
       <section className="dashboard-hero">
         <div className="todos-hero-copy">
           <p className="eyebrow">Today</p>
-          <p className="version-marker">版本标记：OLD-TASK-STYLE</p>
+          <p className="version-marker">版本标记：TASK-ALIGN-FIX</p>
           <h1>待办和计时</h1>
           {isLoading ? <p>正在读取登录状态...</p> : null}
           {!isLoading && !user ? (
@@ -1187,7 +1187,7 @@ export default function TodosPage() {
                   >
                     <div className="todo-card-main">
                       <div className="todo-card-content">
-                      <label className="todo-item">
+                      <label className="task-title-line">
                         <input
                           type="checkbox"
                           checked={todo.completed}
