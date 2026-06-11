@@ -49,6 +49,48 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function toIsoDate(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function parseIsoDate(date: string) {
+  return new Date(`${date}T00:00:00`);
+}
+
+function monthLabel(date: Date) {
+  return date.toLocaleDateString("zh-CN", { month: "long", year: "numeric" });
+}
+
+function calendarDays(monthDate: Date) {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const firstDate = new Date(year, month, 1);
+  const firstWeekday = firstDate.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days: Array<string | null> = Array.from({ length: firstWeekday }, () => null);
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    days.push(toIsoDate(new Date(year, month, day)));
+  }
+
+  return days;
+}
+
+function dayBounds(date: string) {
+  const start = parseIsoDate(date);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 1);
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  };
+}
+
 function formatMinutes(totalMinutes: number) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -131,9 +173,13 @@ export default function TodosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [selectedDate, setSelectedDate] = useState(todayIsoDate());
+  const [calendarMonth, setCalendarMonth] = useState(() => parseIsoDate(todayIsoDate()));
   const [, setTick] = useState(0);
 
-  const today = todayIsoDate();
+  const today = selectedDate;
+  const realToday = todayIsoDate();
+  const calendarDates = useMemo(() => calendarDays(calendarMonth), [calendarMonth]);
 
   const sessionsByTodoId = useMemo(
     () =>
@@ -205,6 +251,7 @@ export default function TodosPage() {
 
   useEffect(() => {
     async function loadUser() {
+      setIsLoading(true);
       const {
         data: { user: currentUser },
       } = await supabase.auth.getUser();
@@ -212,6 +259,8 @@ export default function TodosPage() {
       setUser(currentUser);
 
       if (currentUser) {
+        const selectedDayBounds = dayBounds(today);
+        const todoDateFilter = today === realToday ? `due_on.is.null,due_on.eq.${today}` : `due_on.eq.${today}`;
         const [goalsResult, todosResult, sessionsResult, allSessionsResult, reviewResult] = await Promise.all([
           supabase
             .from("goals")
@@ -223,14 +272,14 @@ export default function TodosPage() {
             .from("todos")
             .select("id,title,completed,category,subcategory,estimated_minutes,goal_id,notes,ai_tags,created_at")
             .eq("owner_id", currentUser.id)
-            .or(`due_on.is.null,due_on.eq.${today}`)
+            .or(todoDateFilter)
             .order("created_at", { ascending: false }),
           supabase
             .from("task_time_sessions")
             .select("id,todo_id,goal_id,started_at,ended_at,duration_seconds")
             .eq("owner_id", currentUser.id)
-            .gte("started_at", `${today}T00:00:00`)
-            .lt("started_at", `${today}T23:59:59`)
+            .gte("started_at", selectedDayBounds.start)
+            .lt("started_at", selectedDayBounds.end)
             .order("started_at", { ascending: false }),
           supabase
             .from("task_time_sessions")
@@ -265,6 +314,15 @@ export default function TodosPage() {
 
     loadUser();
   }, [today]);
+
+  function changeCalendarMonth(offset: number) {
+    setCalendarMonth((currentMonth) => new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1));
+  }
+
+  function chooseCalendarDate(date: string) {
+    setSelectedDate(date);
+    setCalendarMonth(parseIsoDate(date));
+  }
 
   useEffect(() => {
     if (!sessions.some((session) => !session.ended_at)) {
@@ -568,19 +626,61 @@ export default function TodosPage() {
   return (
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
-        <p className="eyebrow">Today</p>
-        <p className="version-marker">版本标记：SELECT-FIX</p>
-        <h1>待办和计时</h1>
-        {isLoading ? <p>正在读取登录状态...</p> : null}
-        {!isLoading && !user ? (
-          <>
-            <p>登录后，这里的待办事项和计时记录会保存到你的账号里。</p>
-            <a className="button primary" href="/login">
-              去登录
-            </a>
-          </>
-        ) : null}
-        {user ? <p>已登录：{user.email}</p> : null}
+        <div className="todos-hero-copy">
+          <p className="eyebrow">Today</p>
+          <p className="version-marker">版本标记：CALENDAR-DAY</p>
+          <h1>待办和计时</h1>
+          {isLoading ? <p>正在读取登录状态...</p> : null}
+          {!isLoading && !user ? (
+            <>
+              <p>登录后，这里的待办事项和计时记录会保存到你的账号里。</p>
+              <a className="button primary" href="/login">
+                去登录
+              </a>
+            </>
+          ) : null}
+          {user ? <p>已登录：{user.email}</p> : null}
+          <p className="selected-day-label">当前日期：{today}</p>
+        </div>
+
+        <aside className="calendar-panel" aria-label="日期选择器">
+          <div className="calendar-header">
+            <button className="mini-button" type="button" onClick={() => changeCalendarMonth(-1)}>
+              上月
+            </button>
+            <strong>{monthLabel(calendarMonth)}</strong>
+            <button className="mini-button" type="button" onClick={() => changeCalendarMonth(1)}>
+              下月
+            </button>
+          </div>
+          <div className="calendar-weekdays">
+            {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
+              <span key={day}>{day}</span>
+            ))}
+          </div>
+          <div className="calendar-grid">
+            {calendarDates.map((date, index) =>
+              date ? (
+                <button
+                  className={[
+                    "calendar-day",
+                    date === today ? "selected" : "",
+                    date === realToday ? "today" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  type="button"
+                  onClick={() => chooseCalendarDate(date)}
+                  key={date}
+                >
+                  {parseIsoDate(date).getDate()}
+                </button>
+              ) : (
+                <span className="calendar-empty" key={`empty-${index}`} />
+              ),
+            )}
+          </div>
+        </aside>
       </section>
 
       <section className="stats-grid">

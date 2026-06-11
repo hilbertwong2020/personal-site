@@ -321,7 +321,85 @@ h3 {
 }
 
 .todos-page .dashboard-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  align-items: start;
   padding: 28px 32px;
+}
+
+.todos-hero-copy {
+  min-width: 0;
+}
+
+.selected-day-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.calendar-panel {
+  align-self: stretch;
+  display: grid;
+  gap: 10px;
+  max-width: 360px;
+  border: 1px solid rgba(222, 216, 204, 0.82);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.76);
+  padding: 14px;
+}
+
+.calendar-header,
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-header {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.calendar-header strong {
+  text-align: center;
+}
+
+.calendar-weekdays span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.calendar-day,
+.calendar-empty {
+  min-height: 34px;
+  border-radius: 8px;
+}
+
+.calendar-day {
+  border: 1px solid transparent;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.calendar-day:hover {
+  border-color: var(--accent);
+}
+
+.calendar-day.today {
+  border-color: rgba(46, 111, 94, 0.38);
+}
+
+.calendar-day.selected {
+  background: var(--accent);
+  color: white;
 }
 
 .todos-page .editor-panel h2,
@@ -995,6 +1073,10 @@ h3 {
   .summary-grid-four,
   .todo-card-main {
     grid-template-columns: 1fr;
+  }
+
+  .calendar-panel {
+    max-width: none;
   }
 
   .goal-column,
