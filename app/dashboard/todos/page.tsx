@@ -638,6 +638,16 @@ export default function TodosPage() {
     setMessage("倒计时时长已更新。");
   }
 
+  function promptUpdateTodoEstimate(todo: Todo) {
+    const nextValue = window.prompt("修改倒计时预计分钟数：", todo.estimated_minutes?.toString() ?? "");
+
+    if (nextValue === null) {
+      return;
+    }
+
+    updateTodoEstimate(todo, nextValue.trim());
+  }
+
   async function toggleTodo(todo: Todo) {
     if (!user) {
       setMessage("请先登录。");
@@ -849,7 +859,7 @@ export default function TodosPage() {
       <section className="dashboard-hero">
         <div className="todos-hero-copy">
           <p className="eyebrow">Today</p>
-          <p className="version-marker">版本标记：WEEK-CALENDAR</p>
+          <p className="version-marker">版本标记：TASK-CARD-RESTORE</p>
           <h1>待办和计时</h1>
           {isLoading ? <p>正在读取登录状态...</p> : null}
           {!isLoading && !user ? (
@@ -1192,20 +1202,16 @@ export default function TodosPage() {
                         {todo.notes ? <p>{todo.notes}</p> : null}
                       </div>
                       <div className="todo-card-controls">
-                      <div className={timerClassName}>
-                        <span>{timerLabel}</span>
-                        <strong>{formatClock(timerSeconds)}</strong>
-                      </div>
-                        <input
-                          className="estimate-edit"
-                          type="number"
-                          min="0"
-                          defaultValue={todo.estimated_minutes ?? ""}
-                          aria-label={`修改 ${todo.title} 的倒计时分钟`}
-                          onBlur={(event) => updateTodoEstimate(todo, event.target.value)}
+                        <button
+                          className={timerClassName}
+                          type="button"
+                          onClick={() => promptUpdateTodoEstimate(todo)}
                           disabled={!user}
-                        />
-                        <span className="estimate-edit-label">分钟</span>
+                          title="点击修改预计分钟数"
+                        >
+                          <span>{timerLabel}</span>
+                          <strong>{formatClock(timerSeconds)}</strong>
+                        </button>
                         {activeSession ? (
                           <button
                             className="button primary compact-action"

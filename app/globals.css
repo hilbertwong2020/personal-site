@@ -818,7 +818,8 @@ h3 {
 
 .todo-card {
   display: grid;
-  gap: 12px;
+  gap: 8px;
+  padding: 16px 18px;
 }
 
 .todo-card-running {
@@ -992,13 +993,13 @@ h3 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 18px;
+  gap: 20px;
 }
 
 .todo-card-content {
   display: grid;
   min-width: 0;
-  gap: 8px;
+  gap: 10px;
 }
 
 .todo-card-controls {
@@ -1008,9 +1009,11 @@ h3 {
 }
 
 .task-meta-row {
+  overflow: hidden;
   flex-wrap: wrap;
   color: var(--muted);
   font-size: 14px;
+  max-height: 70px;
 }
 
 .task-meta-row span {
@@ -1028,6 +1031,14 @@ h3 {
   border-radius: 8px;
   padding: 8px 10px;
   background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  text-align: right;
+  cursor: pointer;
+}
+
+.timer-pill:disabled {
+  cursor: not-allowed;
 }
 
 .timer-pill span {
@@ -1072,25 +1083,6 @@ h3 {
   background: var(--surface-strong);
 }
 
-.estimate-edit {
-  width: 62px;
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0 8px;
-  background: white;
-  color: var(--text);
-  font: inherit;
-  font-weight: 800;
-}
-
-.estimate-edit-label {
-  margin-left: -6px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
 .compact-action {
   min-height: 38px;
   padding: 0 14px;
@@ -1107,11 +1099,10 @@ h3 {
 }
 
 .task-focus-list .todo-item {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
+  display: flex;
   min-width: 0;
   align-items: center;
-  justify-content: start;
+  justify-content: flex-start;
   gap: 10px;
 }
 
