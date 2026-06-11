@@ -169,6 +169,15 @@ export default function WritingPage() {
     <main className="dashboard-page">
       <section className="dashboard-hero">
         <p className="eyebrow">Writing studio</p>
+        <div className="hero-mini-nav">
+          <a className="mini-button" href="/">
+            回到主页
+          </a>
+          <a className="mini-button" href="/dashboard/diary">
+            私密日记
+          </a>
+          <p className="version-marker">版本标记：WRITING-MVP</p>
+        </div>
         <h1>博客写作</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
         {!isLoading && !user ? (
@@ -241,7 +250,7 @@ export default function WritingPage() {
             <input type="checkbox" checked={isPublished} onChange={(event) => setIsPublished(event.target.checked)} />
             <span>发布文章</span>
           </label>
-          <label htmlFor="post-content">正文</label>
+          <label htmlFor="post-content">正文（Markdown / 纯文本）</label>
           <textarea
             id="post-content"
             value={content}
@@ -251,8 +260,9 @@ export default function WritingPage() {
             disabled={!user}
           />
           <button className="button primary" type="button" onClick={savePost} disabled={!user || isSaving}>
-            {isSaving ? "保存中..." : "保存文章"}
+            {isSaving ? "保存中..." : isPublished ? "发布文章" : "保存草稿"}
           </button>
+          <p className="timer-status">关闭“发布文章”时会保存为草稿。可见性选“仅自己可见”时不会作为公开文章展示。</p>
           {message ? <p className="auth-message">{message}</p> : null}
         </section>
       </section>
