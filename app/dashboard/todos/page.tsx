@@ -477,38 +477,23 @@ export default function TodosPage() {
   return (
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
-        <p className="eyebrow">Today</p>
-        <p className="version-marker">版本标记：DAILY-FOCUS</p>
-        <h1>待办和计时</h1>
-        {isLoading ? <p>正在读取登录状态...</p> : null}
-        {!isLoading && !user ? (
-          <>
-            <p>登录后，这里的待办事项和计时记录会保存到你的账号里。</p>
-            <a className="button primary" href="/login">
-              去登录
-            </a>
-          </>
-        ) : null}
-        {user ? <p>已登录：{user.email}</p> : null}
-      </section>
+        <div className="todos-hero-copy">
+          <p className="eyebrow">Today</p>
+          <p className="version-marker">版本标记：GOAL-HERO</p>
+          <h1>待办和计时</h1>
+          {isLoading ? <p>正在读取登录状态...</p> : null}
+          {!isLoading && !user ? (
+            <>
+              <p>登录后，这里的待办事项和计时记录会保存到你的账号里。</p>
+              <a className="button primary" href="/login">
+                去登录
+              </a>
+            </>
+          ) : null}
+          {user ? <p>已登录：{user.email}</p> : null}
+        </div>
 
-      <section className="stats-grid">
-        <article className="stat-card">
-          <span>今日总计时</span>
-          <strong>{formatMinutes(totalMinutes)}</strong>
-        </article>
-        <article className="stat-card">
-          <span>已完成</span>
-          <strong>{completedTodos.length}</strong>
-        </article>
-        <article className="stat-card">
-          <span>未完成</span>
-          <strong>{incompleteTodos.length}</strong>
-        </article>
-      </section>
-
-      <section className="goal-task-layout">
-        <aside className="editor-panel goal-column">
+        <aside className="goal-hero-panel">
           <div className="panel-heading-row">
             <div>
               <p className="eyebrow">Goals</p>
@@ -561,10 +546,10 @@ export default function TodosPage() {
                   <strong>{goal.title}</strong>
                   {goal.description ? <span>{goal.description}</span> : null}
                   <span>{goal.target_date ? `目标日期：${goal.target_date}` : "没有目标日期"}</span>
-                  <div className="goal-time-row">
-                    <span>总投入：{formatMinutes(totalMinutesByGoalId[goal.id] ?? 0)}</span>
-                    <span>今日投入：{formatMinutes(minutesByGoal[goal.title] ?? 0)}</span>
-                  </div>
+                  <p className="goal-time-text">
+                    总投入：{formatMinutes(totalMinutesByGoalId[goal.id] ?? 0)} · 今日投入：
+                    {formatMinutes(minutesByGoal[goal.title] ?? 0)}
+                  </p>
                   {progress !== null ? (
                     <div className="goal-progress-track" aria-label="目标时间进度">
                       <div className="goal-progress-fill" style={{ width: `${progress}%` }} />
@@ -575,7 +560,24 @@ export default function TodosPage() {
             })}
           </div>
         </aside>
+      </section>
 
+      <section className="stats-grid">
+        <article className="stat-card">
+          <span>今日总计时</span>
+          <strong>{formatMinutes(totalMinutes)}</strong>
+        </article>
+        <article className="stat-card">
+          <span>已完成</span>
+          <strong>{completedTodos.length}</strong>
+        </article>
+        <article className="stat-card">
+          <span>未完成</span>
+          <strong>{incompleteTodos.length}</strong>
+        </article>
+      </section>
+
+      <section className="goal-task-layout">
         <div className="short-task-column">
           <section className="editor-panel quick-add-panel">
             <div className="panel-heading-row">
