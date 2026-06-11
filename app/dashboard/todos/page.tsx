@@ -951,78 +951,83 @@ export default function TodosPage() {
   return (
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
-        <div className="todos-hero-copy">
-          <p className="eyebrow">Today</p>
+        <div className="todos-hero-top">
+          <h1>待办和计时</h1>
           <div className="hero-mini-nav">
             <a className="mini-button" href="/">
               回到主页
             </a>
-            <p className="version-marker">版本标记：CAL-MERGE-10</p>
+            <p className="version-marker">版本标记：THREE-CALS</p>
           </div>
-          <h1>待办和计时</h1>
-          {isLoading ? <p>正在读取登录状态...</p> : null}
-          {!isLoading && !user ? (
-            <>
-              <p>登录后，这里的待办事项和计时记录会保存到你的账号里。</p>
-              <a className="button primary" href="/login">
-                去登录
-              </a>
-            </>
-          ) : null}
-          {user ? <p>已登录：{user.email}</p> : null}
-          <p className="selected-day-label">当前日期：{today}</p>
+          <div className="todos-hero-meta">
+            {isLoading ? <span>正在读取登录状态...</span> : null}
+            {!isLoading && !user ? (
+              <>
+                <span>登录后，待办事项和计时记录会保存到你的账号里。</span>
+                <a className="mini-button" href="/login">
+                  去登录
+                </a>
+              </>
+            ) : null}
+            {user ? <span>已登录：{user.email}</span> : null}
+            <span>当前日期：{today}</span>
+          </div>
         </div>
 
-        <aside className="calendar-panel" aria-label="日期选择器">
-          <div className="calendar-header">
-            <button className="mini-button" type="button" onClick={() => changeCalendarMonth(-1)}>
-              上月
-            </button>
-            <strong>{monthLabel(calendarMonth)}</strong>
-            <button className="mini-button" type="button" onClick={() => changeCalendarMonth(1)}>
-              下月
-            </button>
-          </div>
-          <div className="calendar-weekdays">
-            {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
-              <span key={day}>{day}</span>
-            ))}
-          </div>
-          <div className="calendar-grid">
-            {calendarDates.map((date, index) =>
-              date ? (
-                <button
-                  className={[
-                    "calendar-day",
-                    date === today ? "selected" : "",
-                    date === realToday ? "today" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  type="button"
-                  onClick={() => chooseCalendarDate(date)}
-                  key={date}
-                >
-                  {parseIsoDate(date).getDate()}
-                </button>
-              ) : (
-                <span className="calendar-empty" key={`empty-${index}`} />
-              ),
-            )}
-          </div>
-        </aside>
+        <div className="todos-calendar-row">
+          <aside className="calendar-panel" aria-label="日期选择器">
+            <div className="calendar-header">
+              <button className="mini-button" type="button" onClick={() => changeCalendarMonth(-1)}>
+                上月
+              </button>
+              <strong>{monthLabel(calendarMonth)}</strong>
+              <button className="mini-button" type="button" onClick={() => changeCalendarMonth(1)}>
+                下月
+              </button>
+            </div>
+            <div className="calendar-weekdays">
+              {["日", "一", "二", "三", "四", "五", "六"].map((day) => (
+                <span key={day}>{day}</span>
+              ))}
+            </div>
+            <div className="calendar-grid">
+              {calendarDates.map((date, index) =>
+                date ? (
+                  <button
+                    className={[
+                      "calendar-day",
+                      date === today ? "selected" : "",
+                      date === realToday ? "today" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    type="button"
+                    onClick={() => chooseCalendarDate(date)}
+                    key={date}
+                  >
+                    {parseIsoDate(date).getDate()}
+                  </button>
+                ) : (
+                  <span className="calendar-empty" key={`empty-${index}`} />
+                ),
+              )}
+            </div>
+          </aside>
 
-        <WeekCalendar
-          blocks={weekBlocks}
-          dates={selectedWeekDates}
-          importedCount={importedCalendarBlocks.length}
-          isExpanded={false}
-          onChooseDate={chooseCalendarDate}
-          onConnectGoogle={requestGoogleCalendarConnect}
-          onExpand={() => setIsWeekExpanded(true)}
-          onImport={importGoogleCalendarFile}
-          selectedDate={today}
-        />
+          <WeekCalendar
+            blocks={weekBlocks}
+            dates={selectedWeekDates}
+            importedCount={importedCalendarBlocks.length}
+            isExpanded={false}
+            onChooseDate={chooseCalendarDate}
+            onConnectGoogle={requestGoogleCalendarConnect}
+            onExpand={() => setIsWeekExpanded(true)}
+            onImport={importGoogleCalendarFile}
+            selectedDate={today}
+          />
+
+          <DayCalendar blocks={weekBlocks} selectedDate={today} />
+        </div>
       </section>
 
       {isWeekExpanded ? (
@@ -1562,6 +1567,69 @@ function WeekCalendar({
       <p className="calendar-import-note">
         Google Calendar：已导入 {importedCount} 项，只读显示，不会回写。
       </p>
+    </aside>
+  );
+}
+
+function DayCalendar({ blocks, selectedDate }: { blocks: WeekBlock[]; selectedDate: string }) {
+  const startHour = 8;
+  const endHour = 22;
+  const dayStart = startHour * 60;
+  const dayMinutes = (endHour - startHour) * 60;
+  const laidOutBlocks = layoutWeekBlocks(
+    blocks.filter((block) => block.day === selectedDate),
+    [selectedDate],
+  );
+
+  return (
+    <aside className="day-panel" aria-label="今天日历">
+      <div className="week-header">
+        <div>
+          <strong>今天</strong>
+          <span>{selectedDate}</span>
+        </div>
+      </div>
+      <div className="day-grid-view">
+        <div className="day-grid-head">
+          <span />
+          <strong>{parseIsoDate(selectedDate).toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}</strong>
+        </div>
+        <div className="week-grid-body">
+          <div className="week-time-axis">
+            {Array.from({ length: endHour - startHour + 1 }, (_, index) => (
+              <span key={index}>{formatHourLabel(startHour + index)}</span>
+            ))}
+          </div>
+          <div className="week-days-body day-body">
+            {laidOutBlocks.length === 0 ? <p className="day-empty">今天还没有计时块。</p> : null}
+            {laidOutBlocks.map((block, index) => {
+              const clippedStart = Math.max(dayStart, block.startMinutes);
+              const clippedEnd = Math.min(endHour * 60, block.endMinutes);
+              const top = ((clippedStart - dayStart) / dayMinutes) * 100;
+              const height = Math.max(0.7, ((clippedEnd - clippedStart) / dayMinutes) * 100);
+              const left = (block.lane * 100) / block.laneCount;
+              const width = 100 / block.laneCount;
+
+              return (
+                <article
+                  className={block.source === "google" ? "calendar-event google-event" : "calendar-event todo-event"}
+                  style={{
+                    left: `${left}%`,
+                    top: `${top}%`,
+                    width: `calc(${width}% - 6px)`,
+                    height: `${height}%`,
+                  }}
+                  key={`${block.source}-${block.day}-${block.id}-${index}`}
+                  title={`${block.title} ${formatTimeRange(block.startMinutes, block.endMinutes)}`}
+                >
+                  <strong>{block.title}</strong>
+                  <span>{formatTimeRange(block.startMinutes, block.endMinutes)}</span>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </aside>
   );
 }

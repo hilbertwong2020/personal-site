@@ -322,14 +322,44 @@ h3 {
 
 .todos-page .dashboard-hero {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) 300px minmax(460px, 1.15fr);
-  gap: 24px;
+  grid-template-columns: 1fr;
+  gap: 14px;
   align-items: start;
-  padding: 28px 32px;
+  padding: 16px 20px;
 }
 
-.todos-hero-copy {
+.todos-hero-top {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 10px 16px;
+  align-items: center;
   min-width: 0;
+}
+
+.todos-hero-top h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 46px);
+}
+
+.todos-hero-top .hero-mini-nav {
+  margin: 0;
+}
+
+.todos-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: flex-end;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.todos-calendar-row {
+  display: grid;
+  grid-template-columns: 300px minmax(520px, 1fr) 320px;
+  gap: 14px;
+  align-items: stretch;
 }
 
 .selected-day-label {
@@ -339,7 +369,8 @@ h3 {
 }
 
 .calendar-panel,
-.week-panel {
+.week-panel,
+.day-panel {
   align-self: stretch;
   display: grid;
   gap: 10px;
@@ -350,7 +381,7 @@ h3 {
 }
 
 .calendar-panel {
-  max-width: 320px;
+  max-width: none;
 }
 
 .calendar-header,
@@ -597,6 +628,34 @@ h3 {
 .week-panel-expanded .calendar-event {
   padding: 7px 8px;
   font-size: 12px;
+}
+
+.day-grid-view {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.day-grid-head {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  min-height: 48px;
+  text-align: center;
+}
+
+.day-body {
+  min-height: 214px;
+}
+
+.day-empty {
+  position: absolute;
+  inset: 12px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .todos-page .editor-panel h2,
@@ -1432,6 +1491,8 @@ h3 {
 
   .stats-grid,
   .form-grid,
+  .todos-hero-top,
+  .todos-calendar-row,
   .goal-task-layout,
   .quick-add-row,
   .summary-grid-four,
