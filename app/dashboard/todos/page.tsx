@@ -192,6 +192,7 @@ export default function TodosPage() {
   }, {});
   const completedTodos = todos.filter((todo) => todo.completed);
   const incompleteTodos = todos.filter((todo) => !todo.completed);
+  const activeSessions = sessions.filter((session) => !session.ended_at);
   const timeGapTodos = todos.filter((todo) => {
     const actualMinutes = (sessionsByTodoId[todo.id] ?? []).reduce((total, session) => total + sessionMinutes(session), 0);
     return todo.estimated_minutes !== null && Math.abs(actualMinutes - todo.estimated_minutes) >= 30;
@@ -379,7 +380,14 @@ export default function TodosPage() {
       return;
     }
 
-    setMessage(nextCompleted ? "已标记完成。" : "已取消完成。");
+    const stoppedSession =
+      nextCompleted && activeSessionByTodoId[todo.id] ? await stopActiveSession(activeSessionByTodoId[todo.id]) : null;
+
+    if (stoppedSession) {
+      applyStoppedSession(stoppedSession);
+    }
+
+    setMessage(nextCompleted ? (stoppedSession ? "已完成，并已自动停止计时。" : "已标记完成。") : "已取消完成。");
   }
 
   async function startTimer(todo: Todo) {
@@ -414,6 +422,39 @@ export default function TodosPage() {
       return;
     }
 
+    const stoppedSession = await stopActiveSession(activeSession);
+
+    if (!stoppedSession) {
+      return;
+    }
+
+    applyStoppedSession(stoppedSession);
+    setMessage("计时已停止。");
+  }
+
+  async function stopAllTimers() {
+    if (activeSessions.length === 0) {
+      setMessage("现在没有正在计时的任务。");
+      return;
+    }
+
+    const stoppedSessions = await Promise.all(activeSessions.map((session) => stopActiveSession(session)));
+    const validSessions = stoppedSessions.filter((session): session is TimeSession => Boolean(session));
+
+    validSessions.forEach(applyStoppedSession);
+    setMessage(`已停止 ${validSessions.length} 个正在计时的任务。`);
+  }
+
+  function applyStoppedSession(stoppedSession: TimeSession) {
+    setSessions((currentSessions) =>
+      currentSessions.map((session) => (session.id === stoppedSession.id ? stoppedSession : session)),
+    );
+    setAllSessions((currentSessions) =>
+      currentSessions.map((session) => (session.id === stoppedSession.id ? stoppedSession : session)),
+    );
+  }
+
+  async function stopActiveSession(activeSession: TimeSession) {
     const endedAt = new Date();
     const durationSeconds = Math.max(
       0,
@@ -432,16 +473,35 @@ export default function TodosPage() {
 
     if (error) {
       setMessage(error.message);
+      return null;
+    }
+
+    return data as TimeSession;
+  }
+
+  async function deleteTodo(todo: Todo) {
+    if (!user) {
+      setMessage("请先登录。");
       return;
     }
 
-    setSessions((currentSessions) =>
-      currentSessions.map((session) => (session.id === activeSession.id ? (data as TimeSession) : session)),
-    );
-    setAllSessions((currentSessions) =>
-      currentSessions.map((session) => (session.id === activeSession.id ? (data as TimeSession) : session)),
-    );
-    setMessage("计时已停止。");
+    const shouldDelete = window.confirm("确定删除这个待办吗？这个任务的计时记录也会一起删除。");
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    const { error } = await supabase.from("todos").delete().eq("id", todo.id);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setTodos((currentTodos) => currentTodos.filter((currentTodo) => currentTodo.id !== todo.id));
+    setSessions((currentSessions) => currentSessions.filter((session) => session.todo_id !== todo.id));
+    setAllSessions((currentSessions) => currentSessions.filter((session) => session.todo_id !== todo.id));
+    setMessage("待办已删除。");
   }
 
   async function saveReview() {
@@ -478,7 +538,7 @@ export default function TodosPage() {
     <main className="dashboard-page todos-page">
       <section className="dashboard-hero">
         <p className="eyebrow">Today</p>
-        <p className="version-marker">版本标记：TIMER-OVER</p>
+        <p className="version-marker">版本标记：AUTO-STOP</p>
         <h1>待办和计时</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
         {!isLoading && !user ? (
@@ -683,7 +743,12 @@ export default function TodosPage() {
                 <p className="eyebrow">Task list</p>
                 <h2>今天的待办列表</h2>
               </div>
-              <span className="list-count">TASK-CARDS · {todos.length} 项</span>
+              <div className="list-heading-actions">
+                <button className="mini-button" type="button" onClick={stopAllTimers} disabled={!user || activeSessions.length === 0}>
+                  停止全部计时
+                </button>
+                <span className="list-count">TASK-CARDS · {todos.length} 项</span>
+              </div>
             </div>
             <div className="todo-preview-list task-focus-list">
               {todos.length === 0 ? <p className="timer-status">还没有待办。登录后可以添加今天的任务。</p> : null}
@@ -769,6 +834,14 @@ export default function TodosPage() {
                             Start
                           </button>
                         )}
+                        <button
+                          className="button secondary compact-action danger-action"
+                          type="button"
+                          onClick={() => deleteTodo(todo)}
+                          disabled={!user}
+                        >
+                          删除
+                        </button>
                       </div>
                     </div>
                   </article>

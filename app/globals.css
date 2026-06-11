@@ -654,6 +654,13 @@ h3 {
   margin-bottom: 0;
 }
 
+.list-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .mini-button,
 .list-count {
   display: inline-flex;
@@ -794,6 +801,16 @@ h3 {
 .compact-action {
   min-height: 38px;
   padding: 0 14px;
+}
+
+.danger-action {
+  border-color: rgba(171, 48, 48, 0.35);
+  color: #8f2424;
+}
+
+.danger-action:hover {
+  border-color: rgba(171, 48, 48, 0.7);
+  background: rgba(171, 48, 48, 0.08);
 }
 
 .task-focus-list .todo-item {
