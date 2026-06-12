@@ -13,7 +13,7 @@ export default function AuthCallbackPage() {
       const nextPath =
         requestedNextPath?.startsWith("/") && !requestedNextPath.startsWith("//")
           ? requestedNextPath
-          : "/dashboard/todos";
+          : "/";
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       const hashError = hashParams.get("error_description") || hashParams.get("error");
 

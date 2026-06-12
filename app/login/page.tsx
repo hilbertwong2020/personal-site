@@ -17,7 +17,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setMessage("");
 
-    const redirectTo = `${window.location.origin}/auth/callback?next=/dashboard/todos`;
+    const redirectTo = `${window.location.origin}/auth/callback?next=/`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -59,7 +59,7 @@ export default function LoginPage() {
       }
 
       if (data.session) {
-        window.location.replace("/dashboard/todos");
+        window.location.replace("/");
         return;
       }
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.replace("/dashboard/todos");
+    window.location.replace("/");
   }
 
   return (

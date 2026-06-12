@@ -64,6 +64,19 @@ a {
   color: var(--text);
 }
 
+.nav-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav-button:hover {
+  color: var(--text);
+}
+
 main {
   width: min(1120px, calc(100% - 40px));
   margin: 0 auto;

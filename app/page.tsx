@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase/client";
 
 const roadmapItems = [
   "本地打开 Next.js 版本网站。",
@@ -16,8 +18,29 @@ function formatTime(totalSeconds: number) {
 }
 
 export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
   const [remainingSeconds] = useState(25 * 60);
+
+  useEffect(() => {
+    async function loadUser() {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+
+      setUser(currentUser);
+      setIsAuthLoading(false);
+    }
+
+    loadUser();
+  }, []);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.replace("/");
+  }
 
   const timerStatus = useMemo(() => {
     if (isRunning) {
@@ -39,7 +62,14 @@ export default function Home() {
           <a href="#library">资料库</a>
           <a href="/dashboard/todos">待办和计时</a>
           <a href="#private">私密</a>
-          <a href="/login">登录</a>
+          {isAuthLoading ? <span>读取登录...</span> : null}
+          {!isAuthLoading && user ? <a href="/dashboard">个人后台</a> : null}
+          {!isAuthLoading && user ? (
+            <button className="nav-button" type="button" onClick={signOut}>
+              退出登录
+            </button>
+          ) : null}
+          {!isAuthLoading && !user ? <a href="/login">登录</a> : null}
         </nav>
       </header>
 
@@ -52,6 +82,7 @@ export default function Home() {
               这里会慢慢长成一个个人网站：公开文章给大家看，私密日记只给自己看，
               受邀朋友可以在自己的空间写文章，也可以在授权后一起编辑部分文档。
             </p>
+            {!isAuthLoading && user ? <p className="timer-status">已登录：{user.email}</p> : null}
             <div className="hero-actions">
               <a className="button primary" href="#writing">
                 看网站雏形
