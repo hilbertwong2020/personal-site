@@ -85,13 +85,13 @@ export default function DiaryPage() {
             .eq("owner_id", currentUser.id)
             .eq("entry_date", selectedDate)
             .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
+            .limit(1),
           supabase
             .from("diary_entries")
             .select("id,title,content,entry_date")
             .eq("owner_id", currentUser.id)
             .order("entry_date", { ascending: false })
+            .order("created_at", { ascending: false })
             .limit(30),
         ]);
 
@@ -101,10 +101,12 @@ export default function DiaryPage() {
 
         setEntries((entriesResult.data ?? []) as DiaryEntry[]);
 
-        if (entryResult.data) {
-          setEntry(entryResult.data);
-          setTitle(entryResult.data.title ?? "");
-          setContent(entryResult.data.content);
+        const selectedEntry = ((entryResult.data ?? []) as DiaryEntry[])[0] ?? null;
+
+        if (selectedEntry) {
+          setEntry(selectedEntry);
+          setTitle(selectedEntry.title ?? "");
+          setContent(selectedEntry.content);
         } else {
           setEntry(null);
           setTitle("");
@@ -171,6 +173,25 @@ export default function DiaryPage() {
     editorRef.current?.focus();
     document.execCommand("insertText", false, value);
     syncEditorContent();
+  }
+
+  async function refreshDiaryEntries(ownerId: string) {
+    const { data, error } = await supabase
+      .from("diary_entries")
+      .select("id,title,content,entry_date")
+      .eq("owner_id", ownerId)
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    if (error) {
+      setMessage(error.message);
+      return [];
+    }
+
+    const freshEntries = (data ?? []) as DiaryEntry[];
+    setEntries(freshEntries);
+    return freshEntries;
   }
 
   function toggleSpeechInput() {
@@ -265,11 +286,8 @@ export default function DiaryPage() {
 
       setEntry(data);
       setContent(data.content);
-      setEntries((currentEntries) => {
-        const nextEntries = [data as DiaryEntry, ...currentEntries.filter((item) => item.id !== data.id)];
-        return nextEntries.sort((a, b) => b.entry_date.localeCompare(a.entry_date)).slice(0, 30);
-      });
-      setMessage(`日记已保存到 ${data.entry_date}。`);
+      const freshEntries = await refreshDiaryEntries(user.id);
+      setMessage(`日记已保存到 ${data.entry_date}。数据库现在读到 ${freshEntries.length} 篇日记。`);
       return;
     }
 
@@ -293,11 +311,8 @@ export default function DiaryPage() {
 
     setEntry(data);
     setContent(data.content);
-    setEntries((currentEntries) => {
-      const nextEntries = [data as DiaryEntry, ...currentEntries.filter((item) => item.id !== data.id)];
-      return nextEntries.sort((a, b) => b.entry_date.localeCompare(a.entry_date)).slice(0, 30);
-    });
-    setMessage(`日记已保存到 ${data.entry_date}。`);
+    const freshEntries = await refreshDiaryEntries(user.id);
+    setMessage(`日记已保存到 ${data.entry_date}。数据库现在读到 ${freshEntries.length} 篇日记。`);
   }
 
   function chooseEntry(nextEntry: DiaryEntry) {
@@ -321,7 +336,7 @@ export default function DiaryPage() {
           <a className="mini-button" href="/dashboard/todos">
             待办和计时
           </a>
-          <p className="version-marker">版本标记：DIARY-SAVE-FIX</p>
+          <p className="version-marker">版本标记：DIARY-DB-CONFIRM</p>
         </div>
         <h1>私密日记</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
