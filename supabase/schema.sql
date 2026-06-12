@@ -227,6 +227,7 @@ grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on public.goals to authenticated;
 grant select, insert, update, delete on public.task_time_sessions to authenticated;
 grant select, insert, update, delete on public.todo_hidden_dates to authenticated;
+grant select, insert, update, delete on public.diary_entries to authenticated;
 grant select, insert, update, delete on public.daily_reviews to authenticated;
 grant select, insert, update, delete on public.todos to authenticated;
 
