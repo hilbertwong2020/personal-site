@@ -63,6 +63,7 @@ export default function DiaryPage() {
   const [speechLanguage, setSpeechLanguage] = useState("zh-CN");
   const [speechPreview, setSpeechPreview] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [showAllEntries, setShowAllEntries] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -299,6 +300,8 @@ export default function DiaryPage() {
     setMessage("");
   }
 
+  const visibleEntries = showAllEntries ? entries : entries.slice(0, 5);
+
   return (
     <main className="dashboard-page">
       <section className="dashboard-hero">
@@ -310,7 +313,7 @@ export default function DiaryPage() {
           <a className="mini-button" href="/dashboard/todos">
             待办和计时
           </a>
-          <p className="version-marker">版本标记：LIVE-VOICE</p>
+          <p className="version-marker">版本标记：DIARY-LIST</p>
         </div>
         <h1>私密日记</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -330,9 +333,13 @@ export default function DiaryPage() {
           <button className="button primary" type="button" onClick={() => setSelectedDate(todayIsoDate())} disabled={!user}>
             写今天
           </button>
+          <div className="diary-list-heading">
+            <strong>{showAllEntries ? "全部日记" : "最近日记"}</strong>
+            <span>{entries.length} 篇</span>
+          </div>
           <div className="item-list">
             {entries.length === 0 ? <p className="timer-status">还没有日记。</p> : null}
-            {entries.map((item) => (
+            {visibleEntries.map((item) => (
               <button
                 className={item.entry_date === selectedDate ? "item-button active" : "item-button"}
                 type="button"
@@ -344,6 +351,11 @@ export default function DiaryPage() {
               </button>
             ))}
           </div>
+          {entries.length > 5 ? (
+            <button className="mini-button diary-list-toggle" type="button" onClick={() => setShowAllEntries((value) => !value)}>
+              {showAllEntries ? "收起最近日记" : "查看全部以前的日记"}
+            </button>
+          ) : null}
         </aside>
 
         <section className="editor-panel">
