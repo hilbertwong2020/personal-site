@@ -323,7 +323,9 @@ export default function DiaryPage() {
     setMessage("");
   }
 
-  const visibleEntries = showAllEntries ? entries : entries.slice(0, 5);
+  const recentFiveDates = Array.from(new Set(entries.map((item) => item.entry_date))).slice(0, 5);
+  const recentFiveDayEntries = entries.filter((item) => recentFiveDates.includes(item.entry_date));
+  const visibleEntries = showAllEntries ? entries : recentFiveDayEntries;
 
   return (
     <main className="dashboard-page">
@@ -336,7 +338,7 @@ export default function DiaryPage() {
           <a className="mini-button" href="/dashboard/todos">
             待办和计时
           </a>
-          <p className="version-marker">版本标记：DIARY-PERM-FIX</p>
+          <p className="version-marker">版本标记：DIARY-RECENT-5D</p>
         </div>
         <h1>私密日记</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -357,8 +359,8 @@ export default function DiaryPage() {
             写今天
           </button>
           <div className="diary-list-heading">
-            <strong>{showAllEntries ? "全部日记" : "最近日记"}</strong>
-            <span>{entries.length} 篇</span>
+            <strong>{showAllEntries ? "全部日记" : "最近五天日记"}</strong>
+            <span>{showAllEntries ? `${entries.length} 篇` : `${recentFiveDates.length} 天 / ${recentFiveDayEntries.length} 篇`}</span>
           </div>
           <div className="item-list">
             {entries.length === 0 ? (
@@ -376,9 +378,9 @@ export default function DiaryPage() {
               </button>
             ))}
           </div>
-          {entries.length > 5 ? (
+          {entries.length > recentFiveDayEntries.length ? (
             <button className="mini-button diary-list-toggle" type="button" onClick={() => setShowAllEntries((value) => !value)}>
-              {showAllEntries ? "收起最近日记" : "查看全部以前的日记"}
+              {showAllEntries ? "收起到最近五天" : "查看全部日记"}
             </button>
           ) : null}
         </aside>
