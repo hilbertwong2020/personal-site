@@ -243,13 +243,15 @@ export default function DiaryPage() {
       return;
     }
 
+    const currentContent = editorRef.current?.innerHTML ?? content;
+
     setIsSaving(true);
     setMessage("");
 
     if (entry) {
       const { data, error } = await supabase
         .from("diary_entries")
-        .update({ title, content })
+        .update({ title, content: currentContent })
         .eq("id", entry.id)
         .select("id,title,content,entry_date")
         .single();
@@ -262,7 +264,12 @@ export default function DiaryPage() {
       }
 
       setEntry(data);
-      setMessage("日记已保存。");
+      setContent(data.content);
+      setEntries((currentEntries) => {
+        const nextEntries = [data as DiaryEntry, ...currentEntries.filter((item) => item.id !== data.id)];
+        return nextEntries.sort((a, b) => b.entry_date.localeCompare(a.entry_date)).slice(0, 30);
+      });
+      setMessage(`日记已保存到 ${data.entry_date}。`);
       return;
     }
 
@@ -271,7 +278,7 @@ export default function DiaryPage() {
         .insert({
           owner_id: user.id,
           title,
-          content,
+          content: currentContent,
           entry_date: selectedDate,
         })
         .select("id,title,content,entry_date")
@@ -285,11 +292,12 @@ export default function DiaryPage() {
     }
 
     setEntry(data);
+    setContent(data.content);
     setEntries((currentEntries) => {
       const nextEntries = [data as DiaryEntry, ...currentEntries.filter((item) => item.id !== data.id)];
       return nextEntries.sort((a, b) => b.entry_date.localeCompare(a.entry_date)).slice(0, 30);
     });
-    setMessage("日记已保存。");
+    setMessage(`日记已保存到 ${data.entry_date}。`);
   }
 
   function chooseEntry(nextEntry: DiaryEntry) {
@@ -313,7 +321,7 @@ export default function DiaryPage() {
           <a className="mini-button" href="/dashboard/todos">
             待办和计时
           </a>
-          <p className="version-marker">版本标记：DIARY-LIST</p>
+          <p className="version-marker">版本标记：DIARY-SAVE-FIX</p>
         </div>
         <h1>私密日记</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -367,6 +375,7 @@ export default function DiaryPage() {
             onChange={(event) => setSelectedDate(event.target.value)}
             disabled={!user}
           />
+          {user && !entry ? <p className="timer-status">正在写 {selectedDate} 的新日记，保存后会出现在左侧列表。</p> : null}
           <label htmlFor="diary-title">标题</label>
           <input
             id="diary-title"
