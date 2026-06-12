@@ -1144,32 +1144,50 @@ h3 {
   padding: 12px;
 }
 
-.goal-title-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  min-width: 0;
-}
-
-.goal-title-row input {
-  flex: 0 0 auto;
-}
-
-.goal-title-row strong {
-  min-width: 0;
-}
-
-.goal-card-completed {
-  opacity: 0.72;
-}
-
-.goal-card-completed .goal-title-row strong {
-  text-decoration: line-through;
-}
-
 .goal-card span {
   color: var(--muted);
   font-size: 14px;
+}
+
+.goal-card-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.goal-card-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.goal-done-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(247, 245, 240, 0.72);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.goal-done-control input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.goal-card-completed {
+  opacity: 0.78;
+}
+
+.goal-card-completed .goal-card-title {
+  text-decoration: line-through;
 }
 
 .goal-time-text {

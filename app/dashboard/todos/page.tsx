@@ -1005,7 +1005,7 @@ export default function TodosPage() {
             <a className="mini-button" href="/">
               回到主页
             </a>
-            <p className="version-marker">版本标记：OVERLAP-FOCUS</p>
+            <p className="version-marker">版本标记：GOAL-CHECK-CLEAN</p>
           </div>
           <div className="todos-hero-meta">
             {isLoading ? <span>正在读取登录状态...</span> : null}
@@ -1167,15 +1167,18 @@ export default function TodosPage() {
 
               return (
                 <article className={isGoalDone ? "goal-card goal-card-completed" : "goal-card"} key={goal.id}>
-                  <label className="goal-title-row">
-                    <input
-                      type="checkbox"
-                      checked={isGoalDone}
-                      onChange={() => toggleGoalDone(goal)}
-                      disabled={!user}
-                    />
-                    <strong>{goal.title}</strong>
-                  </label>
+                  <div className="goal-card-header">
+                    <strong className="goal-card-title">{goal.title}</strong>
+                    <label className="goal-done-control">
+                      <input
+                        type="checkbox"
+                        checked={isGoalDone}
+                        onChange={() => toggleGoalDone(goal)}
+                        disabled={!user}
+                      />
+                      <span>完成</span>
+                    </label>
+                  </div>
                   {goal.description ? <span>{goal.description}</span> : null}
                   <span>{goal.target_date ? `目标日期：${goal.target_date}` : "没有目标日期"}</span>
                   <p className="goal-time-text">
