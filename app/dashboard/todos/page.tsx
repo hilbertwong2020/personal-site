@@ -10,6 +10,7 @@ type Goal = {
   title: string;
   description: string | null;
   target_date: string | null;
+  status: string;
   created_at: string;
 };
 
@@ -252,6 +253,21 @@ function buildWeekBlocks(sessions: TimeSession[], todosById: Record<string, Todo
     .sort((a, b) => a.day.localeCompare(b.day) || a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes);
 }
 
+function dedupeWeekBlocks(blocks: WeekBlock[]) {
+  const seen = new Set<string>();
+
+  return blocks.filter((block) => {
+    const key = [block.source, block.id, block.day, block.title, block.startMinutes, block.endMinutes].join(":");
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 function formatMinutes(totalMinutes: number) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -374,6 +390,7 @@ export default function TodosPage() {
   const [calendarMonth, setCalendarMonth] = useState(() => parseIsoDate(todayIsoDate()));
   const [importedCalendarBlocks, setImportedCalendarBlocks] = useState<WeekBlock[]>([]);
   const [isWeekExpanded, setIsWeekExpanded] = useState(false);
+  const [isDayExpanded, setIsDayExpanded] = useState(false);
   const [, setTick] = useState(0);
 
   const today = selectedDate;
@@ -456,7 +473,7 @@ export default function TodosPage() {
   const todoWeekBlocks = useMemo(() => buildWeekBlocks(allSessions, allTodoById, today), [allSessions, allTodoById, today]);
   const weekBlocks = useMemo(
     () =>
-      [...todoWeekBlocks, ...importedCalendarBlocks.filter((block) => selectedWeekDates.includes(block.day))].sort(
+      dedupeWeekBlocks([...todoWeekBlocks, ...importedCalendarBlocks.filter((block) => selectedWeekDates.includes(block.day))]).sort(
         (a, b) => a.day.localeCompare(b.day) || a.startMinutes - b.startMinutes,
       ),
     [importedCalendarBlocks, selectedWeekDates, todoWeekBlocks],
@@ -489,9 +506,8 @@ export default function TodosPage() {
         ] = await Promise.all([
           supabase
             .from("goals")
-            .select("id,title,description,target_date,created_at")
+            .select("id,title,description,target_date,status,created_at")
             .eq("owner_id", currentUser.id)
-            .eq("status", "active")
             .order("created_at", { ascending: false }),
           supabase
             .from("todos")
@@ -620,7 +636,7 @@ export default function TodosPage() {
         description: newGoalDescription.trim() || null,
         target_date: newGoalTargetDate || null,
       })
-      .select("id,title,description,target_date,created_at")
+      .select("id,title,description,target_date,status,created_at")
       .single();
 
     if (error) {
@@ -634,6 +650,32 @@ export default function TodosPage() {
     setNewGoalTargetDate("");
     setShowAddGoal(false);
     setMessage("长期目标已创建。");
+  }
+
+  async function toggleGoalDone(goal: Goal) {
+    if (!user) {
+      setMessage("请先登录。");
+      return;
+    }
+
+    const nextStatus = goal.status === "completed" ? "active" : "completed";
+
+    setGoals((currentGoals) =>
+      currentGoals.map((currentGoal) =>
+        currentGoal.id === goal.id ? { ...currentGoal, status: nextStatus } : currentGoal,
+      ),
+    );
+
+    const { error } = await supabase.from("goals").update({ status: nextStatus }).eq("id", goal.id);
+
+    if (error) {
+      setGoals((currentGoals) =>
+        currentGoals.map((currentGoal) =>
+          currentGoal.id === goal.id ? { ...currentGoal, status: goal.status } : currentGoal,
+        ),
+      );
+      setMessage(error.message);
+    }
   }
 
   async function addTodo() {
@@ -957,7 +999,7 @@ export default function TodosPage() {
             <a className="mini-button" href="/">
               回到主页
             </a>
-            <p className="version-marker">版本标记：THREE-CALS</p>
+            <p className="version-marker">版本标记：DAY-ZOOM-GOAL</p>
           </div>
           <div className="todos-hero-meta">
             {isLoading ? <span>正在读取登录状态...</span> : null}
@@ -1026,7 +1068,7 @@ export default function TodosPage() {
             selectedDate={today}
           />
 
-          <DayCalendar blocks={weekBlocks} selectedDate={today} />
+          <DayCalendar blocks={weekBlocks} onExpand={() => setIsDayExpanded(true)} selectedDate={today} />
         </div>
       </section>
 
@@ -1043,6 +1085,12 @@ export default function TodosPage() {
             onImport={importGoogleCalendarFile}
             selectedDate={today}
           />
+        </div>
+      ) : null}
+
+      {isDayExpanded ? (
+        <div className="week-modal" role="dialog" aria-modal="true" aria-label="放大今天日历">
+          <DayCalendar blocks={weekBlocks} isExpanded onClose={() => setIsDayExpanded(false)} selectedDate={today} />
         </div>
       ) : null}
 
@@ -1109,10 +1157,19 @@ export default function TodosPage() {
             {goals.length === 0 ? <p className="timer-status">还没有长期目标。</p> : null}
             {goals.map((goal) => {
               const progress = goalDateProgress(goal);
+              const isGoalDone = goal.status === "completed";
 
               return (
-                <article className="goal-card" key={goal.id}>
-                  <strong>{goal.title}</strong>
+                <article className={isGoalDone ? "goal-card goal-card-completed" : "goal-card"} key={goal.id}>
+                  <label className="goal-title-row">
+                    <input
+                      type="checkbox"
+                      checked={isGoalDone}
+                      onChange={() => toggleGoalDone(goal)}
+                      disabled={!user}
+                    />
+                    <strong>{goal.title}</strong>
+                  </label>
                   {goal.description ? <span>{goal.description}</span> : null}
                   <span>{goal.target_date ? `目标日期：${goal.target_date}` : "没有目标日期"}</span>
                   <p className="goal-time-text">
@@ -1571,7 +1628,19 @@ function WeekCalendar({
   );
 }
 
-function DayCalendar({ blocks, selectedDate }: { blocks: WeekBlock[]; selectedDate: string }) {
+function DayCalendar({
+  blocks,
+  isExpanded = false,
+  onClose,
+  onExpand,
+  selectedDate,
+}: {
+  blocks: WeekBlock[];
+  isExpanded?: boolean;
+  onClose?: () => void;
+  onExpand?: () => void;
+  selectedDate: string;
+}) {
   const startHour = 8;
   const endHour = 22;
   const dayStart = startHour * 60;
@@ -1582,12 +1651,21 @@ function DayCalendar({ blocks, selectedDate }: { blocks: WeekBlock[]; selectedDa
   );
 
   return (
-    <aside className="day-panel" aria-label="今天日历">
+    <aside className={isExpanded ? "day-panel day-panel-expanded" : "day-panel"} aria-label="今天日历">
       <div className="week-header">
         <div>
           <strong>今天</strong>
           <span>{selectedDate}</span>
         </div>
+        {isExpanded ? (
+          <button className="mini-button" type="button" onClick={onClose}>
+            关闭
+          </button>
+        ) : (
+          <button className="mini-button icon-button" type="button" onClick={onExpand} aria-label="放大今天日历">
+            ↗
+          </button>
+        )}
       </div>
       <div className="day-grid-view">
         <div className="day-grid-head">

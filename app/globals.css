@@ -604,30 +604,46 @@ h3 {
   position: fixed;
   z-index: 40;
   inset: 0;
+  display: grid;
+  place-items: center;
   padding: 18px;
   background: rgba(247, 245, 240, 0.9);
   backdrop-filter: blur(8px);
 }
 
-.week-panel-expanded {
-  width: 100%;
-  height: 100%;
+.week-panel-expanded,
+.day-panel-expanded {
+  width: min(1180px, calc(100vw - 48px));
+  height: min(760px, calc(100vh - 48px));
   max-height: none;
   background: white;
 }
 
 .week-panel-expanded .week-grid-view {
-  min-height: calc(100vh - 126px);
+  min-height: 0;
+  height: 100%;
 }
 
 .week-panel-expanded .week-grid-body,
 .week-panel-expanded .week-days-body {
-  min-height: calc(100vh - 210px);
+  min-height: 0;
+  height: 100%;
 }
 
 .week-panel-expanded .calendar-event {
   padding: 7px 8px;
   font-size: 12px;
+}
+
+.day-panel-expanded {
+  width: min(620px, calc(100vw - 48px));
+}
+
+.day-panel-expanded .day-grid-view,
+.day-panel-expanded .week-grid-body,
+.day-panel-expanded .week-days-body {
+  min-height: 0;
+  height: 100%;
 }
 
 .day-grid-view {
@@ -1100,6 +1116,29 @@ h3 {
   border-radius: 8px;
   background: white;
   padding: 12px;
+}
+
+.goal-title-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.goal-title-row input {
+  flex: 0 0 auto;
+}
+
+.goal-title-row strong {
+  min-width: 0;
+}
+
+.goal-card-completed {
+  opacity: 0.72;
+}
+
+.goal-card-completed .goal-title-row strong {
+  text-decoration: line-through;
 }
 
 .goal-card span {
