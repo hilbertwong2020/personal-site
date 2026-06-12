@@ -9,6 +9,7 @@ type DiaryEntry = {
   title: string | null;
   content: string;
   entry_date: string;
+  created_at?: string;
 };
 
 type SpeechRecognitionResultItem = {
@@ -78,47 +79,26 @@ export default function DiaryPage() {
       setUser(currentUser);
 
       if (currentUser) {
-        const [entryResult, entriesResult] = await Promise.all([
-          supabase
-            .from("diary_entries")
-            .select("id,title,content,entry_date")
-            .eq("owner_id", currentUser.id)
-            .eq("entry_date", selectedDate)
-            .order("created_at", { ascending: false })
-            .limit(1),
-          supabase
-            .from("diary_entries")
-            .select("id,title,content,entry_date")
-            .eq("owner_id", currentUser.id)
-            .order("entry_date", { ascending: false })
-            .order("created_at", { ascending: false })
-            .limit(30),
-        ]);
+        const entriesResult = await supabase
+          .from("diary_entries")
+          .select("id,title,content,entry_date,created_at")
+          .eq("owner_id", currentUser.id)
+          .order("entry_date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(50);
 
-        if (entryResult.error ?? entriesResult.error) {
-          setMessage(entryResult.error?.message ?? entriesResult.error?.message ?? "");
+        if (entriesResult.error) {
+          setMessage(entriesResult.error.message);
         }
 
         setEntries((entriesResult.data ?? []) as DiaryEntry[]);
-
-        const selectedEntry = ((entryResult.data ?? []) as DiaryEntry[])[0] ?? null;
-
-        if (selectedEntry) {
-          setEntry(selectedEntry);
-          setTitle(selectedEntry.title ?? "");
-          setContent(selectedEntry.content);
-        } else {
-          setEntry(null);
-          setTitle("");
-          setContent("");
-        }
       }
 
       setIsLoading(false);
     }
 
     loadData();
-  }, [selectedDate]);
+  }, []);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -178,11 +158,11 @@ export default function DiaryPage() {
   async function refreshDiaryEntries(ownerId: string) {
     const { data, error } = await supabase
       .from("diary_entries")
-      .select("id,title,content,entry_date")
+      .select("id,title,content,entry_date,created_at")
       .eq("owner_id", ownerId)
       .order("entry_date", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(50);
 
     if (error) {
       setMessage(error.message);
@@ -258,7 +238,7 @@ export default function DiaryPage() {
     setMessage("语音输入已开始。浏览器可能会要求麦克风权限。");
   }
 
-  async function saveDiary() {
+  async function saveDiary(options: { forceNew?: boolean } = {}) {
     if (!user) {
       setMessage("请先登录。");
       return;
@@ -269,12 +249,12 @@ export default function DiaryPage() {
     setIsSaving(true);
     setMessage("");
 
-    if (entry) {
+    if (entry && !options.forceNew) {
       const { data, error } = await supabase
         .from("diary_entries")
         .update({ title, content: currentContent })
         .eq("id", entry.id)
-        .select("id,title,content,entry_date")
+        .select("id,title,content,entry_date,created_at")
         .single();
 
       setIsSaving(false);
@@ -287,7 +267,7 @@ export default function DiaryPage() {
       setEntry(data);
       setContent(data.content);
       const freshEntries = await refreshDiaryEntries(user.id);
-      setMessage(`日记已保存到 ${data.entry_date}。数据库现在读到 ${freshEntries.length} 篇日记。`);
+      setMessage(`这篇旧日记已更新。数据库现在读到 ${freshEntries.length} 篇日记。`);
       return;
     }
 
@@ -299,7 +279,7 @@ export default function DiaryPage() {
           content: currentContent,
           entry_date: selectedDate,
         })
-        .select("id,title,content,entry_date")
+        .select("id,title,content,entry_date,created_at")
         .single();
 
     setIsSaving(false);
@@ -312,7 +292,7 @@ export default function DiaryPage() {
     setEntry(data);
     setContent(data.content);
     const freshEntries = await refreshDiaryEntries(user.id);
-    setMessage(`日记已保存到 ${data.entry_date}。数据库现在读到 ${freshEntries.length} 篇日记。`);
+    setMessage(`新日记已保存到 ${data.entry_date}。数据库现在读到 ${freshEntries.length} 篇日记。`);
   }
 
   function chooseEntry(nextEntry: DiaryEntry) {
@@ -321,6 +301,18 @@ export default function DiaryPage() {
     setTitle(nextEntry.title ?? "");
     setContent(nextEntry.content);
     setMessage("");
+  }
+
+  function startNewDiary(nextDate = todayIsoDate()) {
+    setSelectedDate(nextDate);
+    setEntry(null);
+    setTitle("");
+    setContent("");
+    setMessage(`正在写 ${nextDate} 的新日记。保存后会新增一篇，不会覆盖旧日记。`);
+
+    if (editorRef.current) {
+      editorRef.current.innerHTML = "";
+    }
   }
 
   const recentFiveDates = Array.from(new Set(entries.map((item) => item.entry_date))).slice(0, 5);
@@ -338,7 +330,7 @@ export default function DiaryPage() {
           <a className="mini-button" href="/dashboard/todos">
             待办和计时
           </a>
-          <p className="version-marker">版本标记：DIARY-RECENT-5D</p>
+          <p className="version-marker">版本标记：DIARY-NO-OVERWRITE</p>
         </div>
         <h1>私密日记</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
@@ -355,8 +347,11 @@ export default function DiaryPage() {
 
       <section className="writing-layout">
         <aside className="sidebar-panel">
-          <button className="button primary" type="button" onClick={() => setSelectedDate(todayIsoDate())} disabled={!user}>
+          <button className="button primary" type="button" onClick={() => startNewDiary(todayIsoDate())} disabled={!user}>
             写今天
+          </button>
+          <button className="mini-button" type="button" onClick={() => startNewDiary(selectedDate)} disabled={!user}>
+            新写一篇
           </button>
           <div className="diary-list-heading">
             <strong>{showAllEntries ? "全部日记" : "最近五天日记"}</strong>
@@ -368,7 +363,7 @@ export default function DiaryPage() {
             ) : null}
             {visibleEntries.map((item) => (
               <button
-                className={item.entry_date === selectedDate ? "item-button active" : "item-button"}
+                className={item.id === entry?.id ? "item-button active" : "item-button"}
                 type="button"
                 onClick={() => chooseEntry(item)}
                 key={item.id}
@@ -391,19 +386,27 @@ export default function DiaryPage() {
               <p className="eyebrow">Write</p>
               <h2>写日记</h2>
             </div>
-            <button className="button primary" type="button" onClick={saveDiary} disabled={!user || isSaving}>
-              {isSaving ? "保存中..." : "保存日记"}
-            </button>
+            <div className="button-row compact-actions">
+              {entry ? (
+                <button className="mini-button" type="button" onClick={() => saveDiary({ forceNew: true })} disabled={!user || isSaving}>
+                  另存为新篇
+                </button>
+              ) : null}
+              <button className="button primary" type="button" onClick={() => saveDiary()} disabled={!user || isSaving}>
+                {isSaving ? "保存中..." : entry ? "更新这篇日记" : "保存新日记"}
+              </button>
+            </div>
           </div>
           <label htmlFor="diary-date">日期</label>
           <input
             id="diary-date"
             type="date"
             value={selectedDate}
-            onChange={(event) => setSelectedDate(event.target.value)}
+            onChange={(event) => startNewDiary(event.target.value)}
             disabled={!user}
           />
-          {user && !entry ? <p className="timer-status">正在写 {selectedDate} 的新日记，保存后会出现在左侧列表。</p> : null}
+          {user && !entry ? <p className="timer-status">正在写 {selectedDate} 的新日记，保存后会新增到左侧列表。</p> : null}
+          {user && entry ? <p className="timer-status">正在编辑一篇旧日记。要写第二篇，请点“新写一篇”或“另存为新篇”。</p> : null}
           <label htmlFor="diary-title">标题</label>
           <input
             id="diary-title"
@@ -518,9 +521,16 @@ export default function DiaryPage() {
             data-placeholder="今天想记录的事..."
             suppressContentEditableWarning
           />
-          <button className="button primary" type="button" onClick={saveDiary} disabled={!user || isSaving}>
-            {isSaving ? "保存中..." : "保存这一天的日记"}
-          </button>
+          <div className="button-row compact-actions">
+            {entry ? (
+              <button className="mini-button" type="button" onClick={() => saveDiary({ forceNew: true })} disabled={!user || isSaving}>
+                另存为新篇
+              </button>
+            ) : null}
+            <button className="button primary" type="button" onClick={() => saveDiary()} disabled={!user || isSaving}>
+              {isSaving ? "保存中..." : entry ? "更新这篇日记" : "保存这篇新日记"}
+            </button>
+          </div>
           <p className="timer-status">日记只保存在你的账号下，其他用户不会看到。</p>
           {message ? <p className="auth-message">{message}</p> : null}
         </section>

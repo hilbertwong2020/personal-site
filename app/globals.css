@@ -1555,6 +1555,14 @@ h3 {
   justify-self: stretch;
 }
 
+.compact-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .editor-panel select {
   min-height: 46px;
   border: 1px solid var(--line);
