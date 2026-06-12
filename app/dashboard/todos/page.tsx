@@ -360,8 +360,8 @@ function layoutWeekBlocks(blocks: WeekBlock[], dates: string[]) {
 
       return laidOutCluster.map((block) => {
         const compactOverlap = laneCount > 1;
-        const laneWidth = compactOverlap ? 0.72 : 1;
-        const laneOffset = compactOverlap ? (block.lane / Math.max(1, laneCount - 1)) * 0.38 : 0;
+        const laneWidth = compactOverlap ? 0.82 : 1;
+        const laneOffset = compactOverlap ? (block.lane / Math.max(1, laneCount - 1)) * 0.48 : 0;
 
         return { ...block, laneCount, laneOffset, laneWidth };
       });
@@ -1023,7 +1023,7 @@ export default function TodosPage() {
             <a className="mini-button" href="/">
               回到主页
             </a>
-            <p className="version-marker">版本标记：OVERLAP-CASCADE</p>
+            <p className="version-marker">版本标记：GCAL-STACK</p>
           </div>
           <div className="todos-hero-meta">
             {isLoading ? <span>正在读取登录状态...</span> : null}
@@ -1640,7 +1640,7 @@ function WeekCalendar({
                 top: `${top}%`,
                 width: `calc(${blockWidth}% - 6px)`,
                 height: `${height}%`,
-                zIndex: isOverlapped ? block.laneCount - block.lane + 1 : 1,
+                zIndex: isOverlapped ? block.lane + 2 : 1,
               } as CSSProperties;
 
               return (
@@ -1740,7 +1740,7 @@ function DayCalendar({
                 top: `${top}%`,
                 width: `calc(${width}% - 6px)`,
                 height: `${height}%`,
-                zIndex: isOverlapped ? block.laneCount - block.lane + 1 : 1,
+                zIndex: isOverlapped ? block.lane + 2 : 1,
               } as CSSProperties;
 
               return (
