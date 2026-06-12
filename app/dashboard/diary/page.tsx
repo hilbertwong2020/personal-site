@@ -194,19 +194,6 @@ export default function DiaryPage() {
     return freshEntries;
   }
 
-  async function ensureProfile(currentUser: User) {
-    const { error } = await supabase.from("profiles").upsert(
-      {
-        id: currentUser.id,
-        email: currentUser.email ?? "",
-        display_name: currentUser.user_metadata?.display_name ?? currentUser.email?.split("@")[0] ?? "",
-      },
-      { onConflict: "id" },
-    );
-
-    return error;
-  }
-
   function toggleSpeechInput() {
     if (!user) {
       setMessage("请先登录。");
@@ -281,13 +268,6 @@ export default function DiaryPage() {
 
     setIsSaving(true);
     setMessage("");
-    const profileError = await ensureProfile(user);
-
-    if (profileError) {
-      setIsSaving(false);
-      setMessage(`保存前检查账号资料失败：${profileError.message}`);
-      return;
-    }
 
     if (entry) {
       const { data, error } = await supabase
@@ -356,7 +336,7 @@ export default function DiaryPage() {
           <a className="mini-button" href="/dashboard/todos">
             待办和计时
           </a>
-          <p className="version-marker">版本标记：DIARY-PROFILE-SAVE</p>
+          <p className="version-marker">版本标记：DIARY-PERM-FIX</p>
         </div>
         <h1>私密日记</h1>
         {isLoading ? <p>正在读取登录状态...</p> : null}
