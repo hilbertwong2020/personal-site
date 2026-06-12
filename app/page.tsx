@@ -35,6 +35,7 @@ export default function Home() {
         </a>
         <nav className="nav" aria-label="主导航">
           <a href="/posts">文章</a>
+          <a href="/dashboard/writing">写博客</a>
           <a href="#library">资料库</a>
           <a href="/dashboard/todos">待办和计时</a>
           <a href="#private">私密</a>
@@ -55,6 +56,9 @@ export default function Home() {
               <a className="button primary" href="#writing">
                 看网站雏形
               </a>
+              <a className="button secondary" href="/dashboard/writing">
+                写博客
+              </a>
               <a className="button secondary" href="/dashboard/todos">
                 打开待办和计时
               </a>
@@ -74,6 +78,9 @@ export default function Home() {
           <div className="section-heading">
             <p className="eyebrow">Writing</p>
             <h2>公开文章</h2>
+            <a className="mini-button" href="/dashboard/writing">
+              进入博客编辑器
+            </a>
           </div>
           <div className="grid two">
             <article className="card">
