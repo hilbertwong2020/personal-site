@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ChangeEvent } from "react";
+import type { CSSProperties, ChangeEvent } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 
@@ -358,7 +358,13 @@ function layoutWeekBlocks(blocks: WeekBlock[], dates: string[]) {
       });
       const laneCount = Math.max(1, laneEnds.length);
 
-      return laidOutCluster.map((block) => ({ ...block, laneCount }));
+      return laidOutCluster.map((block) => {
+        const compactOverlap = laneCount > 1;
+        const laneWidth = compactOverlap ? 0.76 : 1;
+        const laneOffset = compactOverlap ? (block.lane / Math.max(1, laneCount - 1)) * (1 - laneWidth) : 0;
+
+        return { ...block, laneCount, laneOffset, laneWidth };
+      });
     });
   });
 }
@@ -999,7 +1005,7 @@ export default function TodosPage() {
             <a className="mini-button" href="/">
               回到主页
             </a>
-            <p className="version-marker">版本标记：DAY-ZOOM-GOAL</p>
+            <p className="version-marker">版本标记：OVERLAP-FOCUS</p>
           </div>
           <div className="todos-hero-meta">
             {isLoading ? <span>正在读取登录状态...</span> : null}
@@ -1597,18 +1603,31 @@ function WeekCalendar({
               const top = ((clippedStart - dayStart) / dayMinutes) * 100;
               const height = Math.max(0.7, ((clippedEnd - clippedStart) / dayMinutes) * 100);
               const dayWidth = 100 / 7;
-              const blockLeft = dayIndex * dayWidth + (block.lane * dayWidth) / block.laneCount;
-              const blockWidth = dayWidth / block.laneCount;
+              const fullLeft = dayIndex * dayWidth;
+              const blockLeft = fullLeft + block.laneOffset * dayWidth;
+              const blockWidth = dayWidth * block.laneWidth;
+              const isOverlapped = block.laneCount > 1;
+              const eventStyle = {
+                "--event-full-left": `${fullLeft}%`,
+                "--event-full-width": `${dayWidth}%`,
+                left: `${blockLeft}%`,
+                top: `${top}%`,
+                width: `calc(${blockWidth}% - 6px)`,
+                height: `${height}%`,
+                zIndex: isOverlapped ? block.laneCount - block.lane + 1 : 1,
+              } as CSSProperties;
 
               return (
                 <article
-                  className={block.source === "google" ? "calendar-event google-event" : "calendar-event todo-event"}
-                  style={{
-                    left: `${blockLeft}%`,
-                    top: `${top}%`,
-                    width: `calc(${blockWidth}% - 6px)`,
-                    height: `${height}%`,
-                  }}
+                  className={[
+                    "calendar-event",
+                    block.source === "google" ? "google-event" : "todo-event",
+                    isOverlapped ? "calendar-event-overlap" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  style={eventStyle}
+                  tabIndex={0}
                   key={`${block.source}-${block.day}-${block.id}-${index}`}
                   title={`${block.title} ${formatTimeRange(block.startMinutes, block.endMinutes)}`}
                 >
@@ -1685,18 +1704,30 @@ function DayCalendar({
               const clippedEnd = Math.min(endHour * 60, block.endMinutes);
               const top = ((clippedStart - dayStart) / dayMinutes) * 100;
               const height = Math.max(0.7, ((clippedEnd - clippedStart) / dayMinutes) * 100);
-              const left = (block.lane * 100) / block.laneCount;
-              const width = 100 / block.laneCount;
+              const left = block.laneOffset * 100;
+              const width = block.laneWidth * 100;
+              const isOverlapped = block.laneCount > 1;
+              const eventStyle = {
+                "--event-full-left": "0%",
+                "--event-full-width": "100%",
+                left: `${left}%`,
+                top: `${top}%`,
+                width: `calc(${width}% - 6px)`,
+                height: `${height}%`,
+                zIndex: isOverlapped ? block.laneCount - block.lane + 1 : 1,
+              } as CSSProperties;
 
               return (
                 <article
-                  className={block.source === "google" ? "calendar-event google-event" : "calendar-event todo-event"}
-                  style={{
-                    left: `${left}%`,
-                    top: `${top}%`,
-                    width: `calc(${width}% - 6px)`,
-                    height: `${height}%`,
-                  }}
+                  className={[
+                    "calendar-event",
+                    block.source === "google" ? "google-event" : "todo-event",
+                    isOverlapped ? "calendar-event-overlap" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  style={eventStyle}
+                  tabIndex={0}
                   key={`${block.source}-${block.day}-${block.id}-${index}`}
                   title={`${block.title} ${formatTimeRange(block.startMinutes, block.endMinutes)}`}
                 >
