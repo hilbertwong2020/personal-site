@@ -461,16 +461,34 @@ export default function TodosPage() {
     sessionMinutes,
   );
   const totalMinutesByGoalId = allSessions.reduce<Record<string, number>>((totals, session) => {
-    if (!session.goal_id) {
+    const sessionGoalId = session.goal_id ?? allTodoById[session.todo_id]?.goal_id;
+
+    if (!sessionGoalId) {
       return totals;
     }
 
-    if (!session.ended_at && !todoById[session.todo_id]) {
+    if (!session.ended_at && !allTodoById[session.todo_id]) {
       return totals;
     }
 
-    totals[session.goal_id] = (totals[session.goal_id] ?? 0) + sessionMinutes(session);
+    totals[sessionGoalId] = (totals[sessionGoalId] ?? 0) + sessionMinutes(session);
     return totals;
+  }, {});
+  const checkInDatesByGoalId = allSessions.reduce<Record<string, string[]>>((datesByGoal, session) => {
+    const sessionGoalId = session.goal_id ?? allTodoById[session.todo_id]?.goal_id;
+
+    if (!sessionGoalId || !session.ended_at) {
+      return datesByGoal;
+    }
+
+    const sessionDate = toIsoDate(new Date(session.started_at));
+    datesByGoal[sessionGoalId] = datesByGoal[sessionGoalId] ?? [];
+
+    if (!datesByGoal[sessionGoalId].includes(sessionDate)) {
+      datesByGoal[sessionGoalId].push(sessionDate);
+    }
+
+    return datesByGoal;
   }, {});
   const completedTodos = todos.filter((todo) => todo.completed);
   const incompleteTodos = todos.filter((todo) => !todo.completed);
@@ -1005,7 +1023,7 @@ export default function TodosPage() {
             <a className="mini-button" href="/">
               回到主页
             </a>
-            <p className="version-marker">版本标记：GOAL-CHECK-CLEAN</p>
+            <p className="version-marker">版本标记：CHECKIN-RESTORE</p>
           </div>
           <div className="todos-hero-meta">
             {isLoading ? <span>正在读取登录状态...</span> : null}
@@ -1164,6 +1182,7 @@ export default function TodosPage() {
             {goals.map((goal) => {
               const progress = goalDateProgress(goal);
               const isGoalDone = goal.status === "completed";
+              const checkInDates = [...(checkInDatesByGoalId[goal.id] ?? [])].sort().reverse();
 
               return (
                 <article className={isGoalDone ? "goal-card goal-card-completed" : "goal-card"} key={goal.id}>
@@ -1184,6 +1203,10 @@ export default function TodosPage() {
                   <p className="goal-time-text">
                     总投入：{formatMinutes(totalMinutesByGoalId[goal.id] ?? 0)} · 今日投入：
                     {formatMinutes(minutesByGoal[goal.title] ?? 0)}
+                  </p>
+                  <p className="goal-checkin-text">
+                    打卡记录：{checkInDates.length} 天
+                    {checkInDates.length > 0 ? ` · 最近：${checkInDates.slice(0, 3).join("、")}` : ""}
                   </p>
                   {progress !== null ? (
                     <div className="goal-progress-track" aria-label="目标时间进度">

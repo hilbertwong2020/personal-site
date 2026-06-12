@@ -1196,6 +1196,12 @@ h3 {
   font-size: 14px;
 }
 
+.goal-checkin-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .goal-progress-track {
   overflow: hidden;
   height: 8px;
